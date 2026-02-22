@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FURNITURE_CATALOG, ROOM_PRESETS } from '@/types/editor';
+import { FURNITURE_CATALOG, ROOM_PRESETS, DOOR_PRESETS } from '@/types/editor';
 import { Button } from '@/components/ui/button';
-import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2 } from 'lucide-react';
+import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2, DoorOpen } from 'lucide-react';
 
 interface Props {
   onAddFurniture: (type: string, label: string, width: number, height: number) => void;
   onAddRoom: (name: string, width: number, height: number, color: string) => void;
+  onAddDoor: (label: string, width: number, height: number) => void;
   onRotateSelected: () => void;
   onDeleteSelected: () => void;
   hasSelection: boolean;
@@ -20,34 +21,26 @@ const categoryIcons: Record<string, any> = {
   Office: Briefcase,
 };
 
-export default function FurniturePanel({ onAddFurniture, onAddRoom, onRotateSelected, onDeleteSelected, hasSelection }: Props) {
+export default function FurniturePanel({ onAddFurniture, onAddRoom, onAddDoor, onRotateSelected, onDeleteSelected, hasSelection }: Props) {
   const [expandedCat, setExpandedCat] = useState<string>('Living');
-  const [activeTab, setActiveTab] = useState<'rooms' | 'furniture'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'furniture' | 'doors'>('rooms');
 
   const categories = [...new Set(FURNITURE_CATALOG.map(f => f.category))];
 
   return (
-    <div className="w-64 flex-shrink-0 glass-card overflow-hidden flex flex-col h-full">
-      <div className="p-3 border-b flex gap-1">
-        <Button
-          variant={activeTab === 'rooms' ? 'default' : 'ghost'}
-          size="sm"
-          className="flex-1 text-xs"
-          onClick={() => setActiveTab('rooms')}
-        >
+    <div className="w-full md:w-64 flex-shrink-0 glass-card overflow-hidden flex flex-col h-full">
+      <div className="p-3 border-b flex gap-1 overflow-x-auto">
+        <Button variant={activeTab === 'rooms' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('rooms')}>
           <LayoutGrid className="w-3 h-3 mr-1" /> Rooms
         </Button>
-        <Button
-          variant={activeTab === 'furniture' ? 'default' : 'ghost'}
-          size="sm"
-          className="flex-1 text-xs"
-          onClick={() => setActiveTab('furniture')}
-        >
+        <Button variant={activeTab === 'doors' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('doors')}>
+          <DoorOpen className="w-3 h-3 mr-1" /> Doors
+        </Button>
+        <Button variant={activeTab === 'furniture' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('furniture')}>
           <Sofa className="w-3 h-3 mr-1" /> Furniture
         </Button>
       </div>
 
-      {/* Selection Actions */}
       {hasSelection && (
         <div className="p-2 border-b flex gap-1">
           <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={onRotateSelected}>
@@ -75,6 +68,31 @@ export default function FurniturePanel({ onAddFurniture, onAddRoom, onRotateSele
                   </div>
                   <div>
                     <div className="text-sm font-medium">{preset.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(preset.width / 50 * 1.5).toFixed(1)}m × {(preset.height / 50 * 1.5).toFixed(1)}m
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'doors' && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground px-1 mb-2">Click to add a door to the canvas</p>
+            {DOOR_PRESETS.map(preset => (
+              <button
+                key={preset.label}
+                className="w-full text-left p-3 rounded-xl border hover:bg-muted/50 hover:border-secondary transition-colors"
+                onClick={() => onAddDoor(preset.label, preset.width, preset.height)}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                    <DoorOpen className="w-4 h-4 text-foreground/50" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{preset.label}</div>
                     <div className="text-xs text-muted-foreground">
                       {(preset.width / 50 * 1.5).toFixed(1)}m × {(preset.height / 50 * 1.5).toFixed(1)}m
                     </div>

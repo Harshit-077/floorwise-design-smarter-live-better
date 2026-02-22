@@ -35,11 +35,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
+    <div className="min-h-screen pt-24 pb-16 px-4">
       <div className="container">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold">My Projects</h1>
+            <h1 className="font-display text-2xl md:text-3xl font-bold">My Projects</h1>
             <p className="text-muted-foreground mt-1">Manage your floor plan layouts</p>
           </div>
           <Button variant="hero" onClick={createProject} className="gap-2">
