@@ -10,11 +10,13 @@ interface Props {
   onMoveFurniture: (id: string, x: number, y: number) => void;
   onMoveRoom: (id: string, x: number, y: number) => void;
   onDeleteItem: (id: string) => void;
+  backgroundImage?: string | null;
 }
 
 export default function FloorPlanCanvas({
   rooms, furniture, selectedId, activeTool,
   onSelectItem, onMoveFurniture, onMoveRoom, onDeleteItem,
+  backgroundImage,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: string; type: 'room' | 'furniture'; offsetX: number; offsetY: number } | null>(null);
@@ -102,6 +104,9 @@ export default function FloorPlanCanvas({
         </pattern>
       </defs>
       <rect id="grid-bg" width="1000" height="700" fill="url(#grid)" />
+      {backgroundImage && (
+        <image href={backgroundImage} x="0" y="0" width="1000" height="700" opacity="0.3" preserveAspectRatio="xMidYMid slice" />
+      )}
 
       {/* Rooms */}
       {rooms.map(room => (

@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { MousePointer, Square, Trash2, BarChart3, Undo2 } from 'lucide-react';
+import { MousePointer, Square, Trash2, BarChart3, Undo2, Upload, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FloorPlanCanvas from '@/components/FloorPlanCanvas';
 import FurniturePanel from '@/components/FurniturePanel';
 import AnalysisPanel from '@/components/AnalysisPanel';
+import ImageUploadModal from '@/components/ImageUploadModal';
+import SpaceScanModal from '@/components/SpaceScanModal';
 import type { Room, FurnitureItem, EditorTool } from '@/types/editor';
 
 const toolItems: { tool: EditorTool; icon: any; label: string }[] = [
@@ -19,6 +21,9 @@ export default function EditorPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<EditorTool>('select');
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [showScan, setShowScan] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [history, setHistory] = useState<{ rooms: Room[]; furniture: FurnitureItem[] }[]>([]);
 
   const saveHistory = useCallback(() => {
@@ -40,8 +45,7 @@ export default function EditorPage() {
     const offsetY = Math.floor(rooms.length / 3) * 30;
     const newRoom: Room = {
       id: `room-${Date.now()}`,
-      x: 50 + offsetX,
-      y: 50 + offsetY,
+      x: 50 + offsetX, y: 50 + offsetY,
       width, height, name, color,
     };
     setRooms(prev => [...prev, newRoom]);
@@ -89,10 +93,14 @@ export default function EditorPage() {
     deleteItem(selectedId);
   }, [selectedId, deleteItem]);
 
+  const handleImageLoaded = (imageUrl: string) => {
+    setBackgroundImage(imageUrl);
+  };
+
   return (
     <div className="h-screen pt-16 flex flex-col">
       {/* Toolbar */}
-      <div className="h-12 border-b bg-card flex items-center px-4 gap-2 flex-shrink-0">
+      <div className="h-12 border-b bg-card flex items-center px-4 gap-2 flex-shrink-0 overflow-x-auto">
         {toolItems.map(({ tool, icon: Icon, label }) => (
           <Button
             key={tool}
@@ -108,9 +116,25 @@ export default function EditorPage() {
 
         <div className="w-px h-6 bg-border mx-1" />
 
+        <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setShowUpload(true)}>
+          <Upload className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Upload Plan</span>
+        </Button>
+
+        <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setShowScan(true)}>
+          <ScanLine className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Scan Room</span>
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={undo} disabled={history.length === 0}>
           <Undo2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Undo</span>
         </Button>
+
+        {backgroundImage && (
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive" onClick={() => setBackgroundImage(null)}>
+            Clear BG
+          </Button>
+        )}
 
         <div className="flex-1" />
 
@@ -148,6 +172,7 @@ export default function EditorPage() {
             onMoveFurniture={moveFurniture}
             onMoveRoom={moveRoom}
             onDeleteItem={deleteItem}
+            backgroundImage={backgroundImage}
           />
         </div>
 
@@ -161,6 +186,18 @@ export default function EditorPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Modals */}
+      <ImageUploadModal
+        isOpen={showUpload}
+        onClose={() => setShowUpload(false)}
+        onImageLoaded={handleImageLoaded}
+      />
+      <SpaceScanModal
+        isOpen={showScan}
+        onClose={() => setShowScan(false)}
+        onScanComplete={handleImageLoaded}
+      />
     </div>
   );
 }
