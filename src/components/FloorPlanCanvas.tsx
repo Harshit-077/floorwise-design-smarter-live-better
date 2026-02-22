@@ -10,18 +10,23 @@ interface Props {
   onSelectItem: (id: string | null) => void;
   onMoveFurniture: (id: string, x: number, y: number) => void;
   onMoveRoom: (id: string, x: number, y: number) => void;
+  onResizeRoom: (id: string, width: number, height: number) => void;
   onMoveDoor: (id: string, x: number, y: number) => void;
   onDeleteItem: (id: string) => void;
   backgroundImage?: string | null;
 }
 
+type DragMode = 
+  | { mode: 'move'; id: string; type: 'room' | 'furniture' | 'door'; offsetX: number; offsetY: number }
+  | { mode: 'resize'; id: string; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number };
+
 export default function FloorPlanCanvas({
   rooms, furniture, doors, selectedId, activeTool,
-  onSelectItem, onMoveFurniture, onMoveRoom, onMoveDoor, onDeleteItem,
+  onSelectItem, onMoveFurniture, onMoveRoom, onResizeRoom, onMoveDoor, onDeleteItem,
   backgroundImage,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<{ id: string; type: 'room' | 'furniture' | 'door'; offsetX: number; offsetY: number } | null>(null);
+  const [drag, setDrag] = useState<DragMode | null>(null);
 
   const getSVGPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -30,10 +35,7 @@ export default function FloorPlanCanvas({
     const scaleY = 700 / rect.height;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent, id: string, type: 'room' | 'furniture' | 'door', itemX: number, itemY: number) => {
@@ -41,7 +43,7 @@ export default function FloorPlanCanvas({
     if (activeTool === 'delete') { onDeleteItem(id); return; }
     if (activeTool !== 'select') return;
     const pt = getSVGPoint(e);
-    setDragging({ id, type, offsetX: pt.x - itemX, offsetY: pt.y - itemY });
+    setDrag({ mode: 'move', id, type, offsetX: pt.x - itemX, offsetY: pt.y - itemY });
     onSelectItem(id);
   }, [activeTool, getSVGPoint, onSelectItem, onDeleteItem]);
 
@@ -50,29 +52,68 @@ export default function FloorPlanCanvas({
     if (activeTool === 'delete') { onDeleteItem(id); return; }
     if (activeTool !== 'select') return;
     const pt = getSVGPoint(e);
-    setDragging({ id, type, offsetX: pt.x - itemX, offsetY: pt.y - itemY });
+    setDrag({ mode: 'move', id, type, offsetX: pt.x - itemX, offsetY: pt.y - itemY });
     onSelectItem(id);
   }, [activeTool, getSVGPoint, onSelectItem, onDeleteItem]);
 
+  const handleResizeStart = useCallback((e: React.MouseEvent, room: Room, handle: string) => {
+    e.stopPropagation();
+    const pt = getSVGPoint(e);
+    setDrag({ mode: 'resize', id: room.id, handle, startX: pt.x, startY: pt.y, origX: room.x, origY: room.y, origW: room.width, origH: room.height });
+  }, [getSVGPoint]);
+
+  const handleResizeTouchStart = useCallback((e: React.TouchEvent, room: Room, handle: string) => {
+    e.stopPropagation();
+    const pt = getSVGPoint(e);
+    setDrag({ mode: 'resize', id: room.id, handle, startX: pt.x, startY: pt.y, origX: room.x, origY: room.y, origW: room.width, origH: room.height });
+  }, [getSVGPoint]);
+
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!dragging) return;
+    if (!drag) return;
     e.preventDefault();
     const pt = getSVGPoint(e);
-    const newX = Math.round((pt.x - dragging.offsetX) / 10) * 10;
-    const newY = Math.round((pt.y - dragging.offsetY) / 10) * 10;
-    if (dragging.type === 'furniture') onMoveFurniture(dragging.id, newX, newY);
-    else if (dragging.type === 'door') onMoveDoor(dragging.id, newX, newY);
-    else onMoveRoom(dragging.id, newX, newY);
-  }, [dragging, getSVGPoint, onMoveFurniture, onMoveRoom, onMoveDoor]);
 
-  const handleEnd = useCallback(() => setDragging(null), []);
+    if (drag.mode === 'move') {
+      const newX = Math.round((pt.x - drag.offsetX) / 10) * 10;
+      const newY = Math.round((pt.y - drag.offsetY) / 10) * 10;
+      if (drag.type === 'furniture') onMoveFurniture(drag.id, newX, newY);
+      else if (drag.type === 'door') onMoveDoor(drag.id, newX, newY);
+      else onMoveRoom(drag.id, newX, newY);
+    } else if (drag.mode === 'resize') {
+      const dx = pt.x - drag.startX;
+      const dy = pt.y - drag.startY;
+      let newW = drag.origW;
+      let newH = drag.origH;
+      let newX = drag.origX;
+      let newY = drag.origY;
+      const MIN = 60;
+
+      if (drag.handle.includes('e')) newW = Math.max(MIN, Math.round((drag.origW + dx) / 10) * 10);
+      if (drag.handle.includes('s')) newH = Math.max(MIN, Math.round((drag.origH + dy) / 10) * 10);
+      if (drag.handle.includes('w')) {
+        const moved = Math.round(dx / 10) * 10;
+        newW = Math.max(MIN, drag.origW - moved);
+        if (newW !== MIN) newX = drag.origX + moved;
+      }
+      if (drag.handle.includes('n')) {
+        const moved = Math.round(dy / 10) * 10;
+        newH = Math.max(MIN, drag.origH - moved);
+        if (newH !== MIN) newY = drag.origY + moved;
+      }
+
+      onMoveRoom(drag.id, newX, newY);
+      onResizeRoom(drag.id, newW, newH);
+    }
+  }, [drag, getSVGPoint, onMoveFurniture, onMoveRoom, onMoveDoor, onResizeRoom]);
+
+  const handleEnd = useCallback(() => setDrag(null), []);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (e.target === svgRef.current || (e.target as SVGElement).id === 'grid-bg') onSelectItem(null);
   }, [onSelectItem]);
 
   useEffect(() => {
-    const up = () => setDragging(null);
+    const up = () => setDrag(null);
     window.addEventListener('mouseup', up);
     window.addEventListener('touchend', up);
     return () => { window.removeEventListener('mouseup', up); window.removeEventListener('touchend', up); };
@@ -89,6 +130,31 @@ export default function FloorPlanCanvas({
       basin: 'hsl(0 0% 60%)', desk: 'hsl(0 0% 34%)', 'office-chair': 'hsl(0 0% 30%)',
     };
     return colors[type] || 'hsl(0 0% 35%)';
+  };
+
+  const HANDLE_SIZE = 10;
+  const renderResizeHandles = (room: Room) => {
+    if (selectedId !== room.id || activeTool !== 'select') return null;
+    const handles = [
+      { key: 'n', x: room.x + room.width / 2 - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'ns-resize' },
+      { key: 's', x: room.x + room.width / 2 - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'ns-resize' },
+      { key: 'w', x: room.x - HANDLE_SIZE / 2, y: room.y + room.height / 2 - HANDLE_SIZE / 2, cursor: 'ew-resize' },
+      { key: 'e', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y + room.height / 2 - HANDLE_SIZE / 2, cursor: 'ew-resize' },
+      { key: 'nw', x: room.x - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'nwse-resize' },
+      { key: 'ne', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'nesw-resize' },
+      { key: 'sw', x: room.x - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'nesw-resize' },
+      { key: 'se', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'nwse-resize' },
+    ];
+    return handles.map(h => (
+      <rect
+        key={h.key}
+        x={h.x} y={h.y} width={HANDLE_SIZE} height={HANDLE_SIZE}
+        fill="hsl(0 0% 20%)" stroke="hsl(0 0% 60%)" strokeWidth="1" rx="2"
+        style={{ cursor: h.cursor }}
+        onMouseDown={(e) => handleResizeStart(e, room, h.key)}
+        onTouchStart={(e) => handleResizeTouchStart(e, room, h.key)}
+      />
+    ));
   };
 
   return (
@@ -118,32 +184,35 @@ export default function FloorPlanCanvas({
 
       {/* Rooms */}
       {rooms.map(room => (
-        <g key={room.id}
-          onMouseDown={(e) => handleMouseDown(e, room.id, 'room', room.x, room.y)}
-          onTouchStart={(e) => handleTouchStart(e, room.id, 'room', room.x, room.y)}
-          style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
-        >
-          <rect
-            x={room.x} y={room.y} width={room.width} height={room.height}
-            fill={room.color} stroke={selectedId === room.id ? 'hsl(0 0% 40%)' : 'hsl(0 0% 15%)'}
-            strokeWidth={selectedId === room.id ? 3 : 2} rx="4"
-            opacity={0.6}
-          />
-          <text
-            x={room.x + room.width / 2} y={room.y + room.height / 2}
-            textAnchor="middle" dominantBaseline="central"
-            fontSize="13" fontWeight="600" fill="hsl(0 0% 15%)"
-            fontFamily="Space Grotesk, sans-serif" pointerEvents="none"
+        <g key={room.id}>
+          <g
+            onMouseDown={(e) => handleMouseDown(e, room.id, 'room', room.x, room.y)}
+            onTouchStart={(e) => handleTouchStart(e, room.id, 'room', room.x, room.y)}
+            style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
           >
-            {room.name}
-          </text>
-          <text
-            x={room.x + room.width / 2} y={room.y + room.height / 2 + 18}
-            textAnchor="middle" dominantBaseline="central"
-            fontSize="10" fill="hsl(0 0% 45%)" pointerEvents="none"
-          >
-            {(room.width / 50 * 1.5).toFixed(1)}m × {(room.height / 50 * 1.5).toFixed(1)}m
-          </text>
+            <rect
+              x={room.x} y={room.y} width={room.width} height={room.height}
+              fill={room.color} stroke={selectedId === room.id ? 'hsl(0 0% 40%)' : 'hsl(0 0% 15%)'}
+              strokeWidth={selectedId === room.id ? 3 : 2} rx="4"
+              opacity={0.6}
+            />
+            <text
+              x={room.x + room.width / 2} y={room.y + room.height / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="13" fontWeight="600" fill="hsl(0 0% 15%)"
+              fontFamily="Space Grotesk, sans-serif" pointerEvents="none"
+            >
+              {room.name}
+            </text>
+            <text
+              x={room.x + room.width / 2} y={room.y + room.height / 2 + 18}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="10" fill="hsl(0 0% 45%)" pointerEvents="none"
+            >
+              {(room.width / 50 * 1.5).toFixed(1)}m × {(room.height / 50 * 1.5).toFixed(1)}m
+            </text>
+          </g>
+          {renderResizeHandles(room)}
         </g>
       ))}
 
@@ -162,7 +231,6 @@ export default function FloorPlanCanvas({
             strokeWidth={selectedId === door.id ? 2.5 : 1}
             rx="2"
           />
-          {/* Door swing arc */}
           <path
             d={`M ${door.x} ${door.y + door.height} A ${door.width} ${door.width} 0 0 1 ${door.x + door.width} ${door.y + door.height}`}
             fill="none" stroke="hsl(0 0% 40%)" strokeWidth="1" strokeDasharray="3 2"

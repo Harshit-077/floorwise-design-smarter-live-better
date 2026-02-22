@@ -77,6 +77,10 @@ export default function EditorPage() {
     setRooms(prev => prev.map(r => r.id === id ? { ...r, x, y } : r));
   }, []);
 
+  const resizeRoom = useCallback((id: string, width: number, height: number) => {
+    setRooms(prev => prev.map(r => r.id === id ? { ...r, width, height } : r));
+  }, []);
+
   const moveDoor = useCallback((id: string, x: number, y: number) => {
     setDoors(prev => prev.map(d => d.id === id ? { ...d, x, y } : d));
   }, []);
@@ -186,6 +190,7 @@ export default function EditorPage() {
             onSelectItem={setSelectedId}
             onMoveFurniture={moveFurniture}
             onMoveRoom={moveRoom}
+            onResizeRoom={resizeRoom}
             onMoveDoor={moveDoor}
             onDeleteItem={deleteItem}
             backgroundImage={backgroundImage}
