@@ -8,6 +8,16 @@ export interface Room {
   color: string;
 }
 
+export interface DoorItem {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  wallSide: 'top' | 'bottom' | 'left' | 'right';
+}
+
 export interface FurnitureItem {
   id: string;
   type: string;
@@ -36,11 +46,18 @@ export interface ProjectData {
   name: string;
   rooms: Room[];
   furniture: FurnitureItem[];
+  doors: DoorItem[];
   createdAt: string;
   updatedAt: string;
 }
 
 export type EditorTool = 'select' | 'room' | 'door' | 'window' | 'delete';
+
+export const DOOR_PRESETS = [
+  { label: 'Standard Door', width: 40, height: 8 },
+  { label: 'Double Door', width: 60, height: 8 },
+  { label: 'Sliding Door', width: 50, height: 6 },
+] as const;
 
 export const FURNITURE_CATALOG = [
   { type: 'sofa', label: 'Sofa', width: 100, height: 45, category: 'Living' },
@@ -67,10 +84,10 @@ export const FURNITURE_CATALOG = [
 ] as const;
 
 export const ROOM_PRESETS = [
-  { name: 'Living Room', width: 250, height: 200, color: 'hsl(197 33% 91%)' },
-  { name: 'Bedroom', width: 200, height: 180, color: 'hsl(220 30% 92%)' },
-  { name: 'Kitchen', width: 180, height: 150, color: 'hsl(27 40% 92%)' },
-  { name: 'Bathroom', width: 120, height: 100, color: 'hsl(195 30% 90%)' },
-  { name: 'Dining Room', width: 180, height: 160, color: 'hsl(128 20% 92%)' },
-  { name: 'Office', width: 160, height: 140, color: 'hsl(260 20% 92%)' },
+  { name: 'Living Room', width: 250, height: 200, color: 'hsl(0 0% 92%)' },
+  { name: 'Bedroom', width: 200, height: 180, color: 'hsl(0 0% 89%)' },
+  { name: 'Kitchen', width: 180, height: 150, color: 'hsl(0 0% 86%)' },
+  { name: 'Bathroom', width: 120, height: 100, color: 'hsl(0 0% 83%)' },
+  { name: 'Dining Room', width: 180, height: 160, color: 'hsl(0 0% 90%)' },
+  { name: 'Office', width: 160, height: 140, color: 'hsl(0 0% 87%)' },
 ] as const;
