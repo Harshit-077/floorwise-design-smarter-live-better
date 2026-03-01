@@ -1,66 +1,127 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { ChatMessage } from '@/types/editor';
+import type { ChatMessage, Room, FurnitureItem, DoorItem } from '@/types/editor';
 
-const MOCK_RESPONSES: Record<string, string> = {
-  default: "I'm FloorWise AI — your spatial design assistant. I can help you with layout advice, furniture placement, room sizing, and explain design principles. What would you like to know?",
-  circulation: "Good circulation means maintaining at least 90cm (3ft) clearance in walkways. In your layout, ensure doors don't clash and there's a clear path between rooms. The kitchen work triangle (sink-stove-fridge) should total 4-8 meters.",
-  furniture: "When placing furniture, consider the room's focal point. In living rooms, arrange seating to face the TV or fireplace. Keep 45cm between coffee table and sofa. Allow 60cm behind dining chairs for movement.",
-  bedroom: "A standard double bed needs a room at least 3m × 3.5m. Leave 60cm on each side for access. The bed should ideally face the door but not be directly in front of it. Natural light from the side is optimal.",
-  kitchen: "The kitchen work triangle (sink, stove, fridge) should have sides between 1.2m and 2.7m each. Total perimeter should be 4-8m. Keep 1m of counter space on each side of the stove for prep work.",
-  small: "For small spaces: use multi-functional furniture, mirrors to create depth, and vertical storage. Open shelving feels less heavy than closed cabinets. Light colors make rooms feel larger.",
-};
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-function getAIResponse(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes('circulation') || lower.includes('walkway') || lower.includes('clearance')) return MOCK_RESPONSES.circulation;
-  if (lower.includes('furniture') || lower.includes('sofa') || lower.includes('place')) return MOCK_RESPONSES.furniture;
-  if (lower.includes('bedroom') || lower.includes('bed')) return MOCK_RESPONSES.bedroom;
-  if (lower.includes('kitchen') || lower.includes('cook')) return MOCK_RESPONSES.kitchen;
-  if (lower.includes('small') || lower.includes('tiny') || lower.includes('compact')) return MOCK_RESPONSES.small;
-  return "That's a great question! For the best results, I recommend analyzing your current layout by clicking 'Analyze Layout' in the toolbar. I can then provide specific recommendations based on your room dimensions and furniture placement. Feel free to ask about circulation, furniture sizing, or specific room types!";
+interface Props {
+  rooms?: Room[];
+  furniture?: FurnitureItem[];
+  doors?: DoorItem[];
 }
 
-export default function AIChatWidget() {
+function buildLayoutContext(rooms: Room[], furniture: FurnitureItem[], doors: DoorItem[]): string {
+  if (rooms.length === 0 && furniture.length === 0) return '';
+  const lines: string[] = [];
+  lines.push(`Rooms (${rooms.length}):`);
+  rooms.forEach(r => {
+    const w = (r.width / 50 * 1.5).toFixed(1);
+    const h = (r.height / 50 * 1.5).toFixed(1);
+    lines.push(`  - ${r.name}: ${w}m × ${h}m`);
+  });
+  lines.push(`Doors: ${doors.length}`);
+  lines.push(`Furniture (${furniture.length}):`);
+  furniture.forEach(f => lines.push(`  - ${f.label} at (${f.x}, ${f.y})`));
+  const totalArea = rooms.reduce((s, r) => s + r.width * r.height, 0);
+  const furnArea = furniture.reduce((s, f) => s + f.width * f.height, 0);
+  if (totalArea > 0) lines.push(`Furniture density: ${((furnArea / totalArea) * 100).toFixed(1)}%`);
+  return lines.join('\n');
+}
+
+export default function AIChatWidget({ rooms = [], furniture = [], doors = [] }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '0', role: 'assistant', content: MOCK_RESPONSES.default },
+    { id: '0', role: 'assistant', content: "I'm FloorWise AI — your spatial design assistant. Ask me about your layout, furniture placement, circulation, or any design question!" },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || isTyping) return;
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = getAIResponse(input);
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: response }]);
-      setIsTyping(false);
-    }, 800 + Math.random() * 600);
-  };
+    const apiMessages = [...messages.filter(m => m.id !== '0'), userMsg].map(m => ({
+      role: m.role, content: m.content,
+    }));
+
+    let assistantContent = '';
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: apiMessages,
+          layoutContext: buildLayoutContext(rooms, furniture, doors),
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'AI service unavailable' }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      if (!resp.body) throw new Error('No response stream');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let nlIdx: number;
+        while ((nlIdx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, nlIdx);
+          buffer = buffer.slice(nlIdx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant' && last.id.startsWith('stream-')) {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                }
+                return [...prev, { id: `stream-${Date.now()}`, role: 'assistant', content: assistantContent }];
+              });
+            }
+          } catch { buffer = line + '\n' + buffer; break; }
+        }
+      }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : 'Something went wrong';
+      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: `Sorry, I couldn't respond: ${errMsg}. Try again or ask about general design tips!` }]);
+    }
+    setIsTyping(false);
+  }, [input, messages, isTyping, rooms, furniture, doors]);
 
   return (
     <>
-      {/* Toggle Button */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
+            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
             onClick={() => setIsOpen(true)}
             className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full gradient-primary shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow"
           >
@@ -70,16 +131,14 @@ export default function AIChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Chat Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-96 h-[500px] glass-card flex flex-col overflow-hidden shadow-2xl"
+            className="fixed bottom-4 right-4 z-50 w-[90vw] max-w-96 h-[70vh] max-h-[500px] glass-card flex flex-col overflow-hidden shadow-2xl"
           >
-            {/* Header */}
             <div className="gradient-primary p-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
@@ -87,7 +146,7 @@ export default function AIChatWidget() {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-primary-foreground">FloorWise AI</div>
-                  <div className="text-xs text-accent/70">Spatial Design Assistant</div>
+                  <div className="text-xs text-accent/70">Powered by AI</div>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-primary-foreground hover:bg-secondary/30">
@@ -95,7 +154,6 @@ export default function AIChatWidget() {
               </Button>
             </div>
 
-            {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -108,7 +166,7 @@ export default function AIChatWidget() {
                   </div>
                 </div>
               ))}
-              {isTyping && (
+              {isTyping && !messages.some(m => m.id.startsWith('stream-')) && (
                 <div className="flex justify-start">
                   <div className="bg-muted p-3 rounded-2xl rounded-bl-md">
                     <div className="flex gap-1">
@@ -121,7 +179,6 @@ export default function AIChatWidget() {
               )}
             </div>
 
-            {/* Input */}
             <div className="p-3 border-t flex gap-2 flex-shrink-0">
               <input
                 value={input}
@@ -130,7 +187,7 @@ export default function AIChatWidget() {
                 placeholder="Ask about your layout..."
                 className="flex-1 px-3 py-2 bg-muted rounded-xl text-sm outline-none focus:ring-2 focus:ring-secondary/50"
               />
-              <Button variant="default" size="icon" onClick={sendMessage} disabled={!input.trim()}>
+              <Button variant="default" size="icon" onClick={sendMessage} disabled={!input.trim() || isTyping}>
                 <Send className="w-4 h-4" />
               </Button>
             </div>

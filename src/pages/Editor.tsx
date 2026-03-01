@@ -1,13 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { MousePointer, Square, Trash2, BarChart3, Undo2, Upload, ScanLine, DoorOpen, Menu, X } from 'lucide-react';
+import { MousePointer, Square, Trash2, BarChart3, Undo2, Upload, ScanLine, DoorOpen, Menu, X, Box, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FloorPlanCanvas from '@/components/FloorPlanCanvas';
 import FurniturePanel from '@/components/FurniturePanel';
 import AnalysisPanel from '@/components/AnalysisPanel';
 import ImageUploadModal from '@/components/ImageUploadModal';
 import SpaceScanModal from '@/components/SpaceScanModal';
-import type { Room, FurnitureItem, DoorItem, EditorTool } from '@/types/editor';
+import ExportTools from '@/components/ExportTools';
+import AIChatWidget from '@/components/AIChatWidget';
+import type { Room, FurnitureItem, DoorItem, EditorTool, ProjectData } from '@/types/editor';
+
+const ThreeDView = lazy(() => import('@/components/ThreeDView'));
 
 const toolItems: { tool: EditorTool; icon: any; label: string }[] = [
   { tool: 'select', icon: MousePointer, label: 'Select' },
@@ -26,6 +30,8 @@ export default function EditorPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [show3D, setShow3D] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [history, setHistory] = useState<{ rooms: Room[]; furniture: FurnitureItem[]; doors: DoorItem[] }[]>([]);
 
@@ -81,6 +87,14 @@ export default function EditorPage() {
     setRooms(prev => prev.map(r => r.id === id ? { ...r, width, height } : r));
   }, []);
 
+  const resizeFurniture = useCallback((id: string, width: number, height: number) => {
+    setFurniture(prev => prev.map(f => f.id === id ? { ...f, width, height } : f));
+  }, []);
+
+  const resizeDoor = useCallback((id: string, width: number, height: number) => {
+    setDoors(prev => prev.map(d => d.id === id ? { ...d, width, height } : d));
+  }, []);
+
   const moveDoor = useCallback((id: string, x: number, y: number) => {
     setDoors(prev => prev.map(d => d.id === id ? { ...d, x, y } : d));
   }, []);
@@ -105,24 +119,25 @@ export default function EditorPage() {
     deleteItem(selectedId);
   }, [selectedId, deleteItem]);
 
+  const loadProject = useCallback((data: ProjectData) => {
+    saveHistory();
+    setRooms(data.rooms);
+    setFurniture(data.furniture);
+    setDoors(data.doors);
+    setSelectedId(null);
+  }, [saveHistory]);
+
   return (
     <div className="h-screen pt-16 flex flex-col">
       {/* Toolbar */}
       <div className="h-12 border-b bg-card flex items-center px-2 md:px-4 gap-1 md:gap-2 flex-shrink-0 overflow-x-auto">
-        {/* Mobile panel toggle */}
         <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setShowPanel(!showPanel)}>
           {showPanel ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </Button>
 
         {toolItems.map(({ tool, icon: Icon, label }) => (
-          <Button
-            key={tool}
-            variant={activeTool === tool ? 'default' : 'ghost'}
-            size="sm"
-            className="gap-1 text-xs px-2 md:px-3"
-            onClick={() => setActiveTool(tool)}
-            title={label}
-          >
+          <Button key={tool} variant={activeTool === tool ? 'default' : 'ghost'} size="sm"
+            className="gap-1 text-xs px-2 md:px-3" onClick={() => setActiveTool(tool)} title={label}>
             <Icon className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{label}</span>
           </Button>
         ))}
@@ -142,6 +157,14 @@ export default function EditorPage() {
           <Undo2 className="w-3.5 h-3.5" /> <span className="hidden md:inline">Undo</span>
         </Button>
 
+        <Button variant="ghost" size="sm" className="gap-1 text-xs px-2" onClick={() => setShowExport(true)}>
+          <Save className="w-3.5 h-3.5" /> <span className="hidden md:inline">Save</span>
+        </Button>
+
+        <Button variant={show3D ? 'default' : 'ghost'} size="sm" className="gap-1 text-xs px-2" onClick={() => setShow3D(!show3D)}>
+          <Box className="w-3.5 h-3.5" /> <span className="hidden md:inline">3D</span>
+        </Button>
+
         {backgroundImage && (
           <Button variant="ghost" size="sm" className="gap-1 text-xs text-destructive px-2" onClick={() => setBackgroundImage(null)}>
             <span className="hidden sm:inline">Clear BG</span>
@@ -154,19 +177,14 @@ export default function EditorPage() {
           {rooms.length}R · {doors.length}D · {furniture.length}F
         </div>
 
-        <Button
-          variant={showAnalysis ? 'default' : 'hero'}
-          size="sm"
-          className="gap-1 text-xs md:text-sm"
-          onClick={() => setShowAnalysis(!showAnalysis)}
-        >
+        <Button variant={showAnalysis ? 'default' : 'hero'} size="sm" className="gap-1 text-xs md:text-sm"
+          onClick={() => setShowAnalysis(!showAnalysis)}>
           <BarChart3 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Analyze</span>
         </Button>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Side panel - mobile overlay or desktop sidebar */}
         <div className={`${showPanel ? 'absolute inset-0 z-30 bg-background/80 backdrop-blur-sm md:relative md:bg-transparent md:backdrop-blur-none' : 'hidden md:block'}`}>
           <div className={`${showPanel ? 'w-64 h-full' : 'w-64'}`}>
             <FurniturePanel
@@ -181,36 +199,34 @@ export default function EditorPage() {
         </div>
 
         <div className="flex-1 p-2 md:p-3 overflow-hidden">
-          <FloorPlanCanvas
-            rooms={rooms}
-            furniture={furniture}
-            doors={doors}
-            selectedId={selectedId}
-            activeTool={activeTool}
-            onSelectItem={setSelectedId}
-            onMoveFurniture={moveFurniture}
-            onMoveRoom={moveRoom}
-            onResizeRoom={resizeRoom}
-            onMoveDoor={moveDoor}
-            onDeleteItem={deleteItem}
-            backgroundImage={backgroundImage}
-          />
+          {show3D ? (
+            <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-card rounded-xl border"><span className="text-muted-foreground">Loading 3D view...</span></div>}>
+              <ThreeDView rooms={rooms} furniture={furniture} doors={doors} />
+            </Suspense>
+          ) : (
+            <FloorPlanCanvas
+              rooms={rooms} furniture={furniture} doors={doors}
+              selectedId={selectedId} activeTool={activeTool}
+              onSelectItem={setSelectedId}
+              onMoveFurniture={moveFurniture} onMoveRoom={moveRoom}
+              onResizeRoom={resizeRoom} onResizeFurniture={resizeFurniture} onResizeDoor={resizeDoor}
+              onMoveDoor={moveDoor} onDeleteItem={deleteItem}
+              backgroundImage={backgroundImage}
+            />
+          )}
         </div>
 
         <AnimatePresence>
           {showAnalysis && (
-            <AnalysisPanel
-              rooms={rooms}
-              furniture={furniture}
-              doors={doors}
-              onClose={() => setShowAnalysis(false)}
-            />
+            <AnalysisPanel rooms={rooms} furniture={furniture} doors={doors} onClose={() => setShowAnalysis(false)} />
           )}
         </AnimatePresence>
       </div>
 
       <ImageUploadModal isOpen={showUpload} onClose={() => setShowUpload(false)} onImageLoaded={setBackgroundImage} />
       <SpaceScanModal isOpen={showScan} onClose={() => setShowScan(false)} onScanComplete={setBackgroundImage} />
+      <ExportTools isOpen={showExport} onClose={() => setShowExport(false)} rooms={rooms} furniture={furniture} doors={doors} onLoadProject={loadProject} />
+      <AIChatWidget rooms={rooms} furniture={furniture} doors={doors} />
     </div>
   );
 }
