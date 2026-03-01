@@ -4,6 +4,7 @@ import { MousePointer, Square, Trash2, BarChart3, Undo2, Upload, ScanLine, DoorO
 import { Button } from '@/components/ui/button';
 import FloorPlanCanvas from '@/components/FloorPlanCanvas';
 import FurniturePanel from '@/components/FurniturePanel';
+import PropertiesPanel from '@/components/PropertiesPanel';
 import AnalysisPanel from '@/components/AnalysisPanel';
 import ImageUploadModal from '@/components/ImageUploadModal';
 import SpaceScanModal from '@/components/SpaceScanModal';
@@ -186,7 +187,7 @@ export default function EditorPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className={`${showPanel ? 'absolute inset-0 z-30 bg-background/80 backdrop-blur-sm md:relative md:bg-transparent md:backdrop-blur-none' : 'hidden md:block'}`}>
-          <div className={`${showPanel ? 'w-64 h-full' : 'w-64'}`}>
+          <div className={`${showPanel ? 'w-64 h-full flex flex-col gap-2' : 'w-64 flex flex-col gap-2'}`}>
             <FurniturePanel
               onAddFurniture={(type, label, w, h) => { addFurniture(type, label, w, h); setShowPanel(false); }}
               onAddRoom={(name, w, h, c) => { addRoom(name, w, h, c); setShowPanel(false); }}
@@ -194,6 +195,12 @@ export default function EditorPage() {
               onRotateSelected={rotateSelected}
               onDeleteSelected={deleteSelected}
               hasSelection={!!selectedId}
+            />
+            <PropertiesPanel
+              selectedId={selectedId}
+              rooms={rooms} furniture={furniture} doors={doors}
+              onResizeRoom={resizeRoom} onResizeFurniture={resizeFurniture} onResizeDoor={resizeDoor}
+              onRotateSelected={rotateSelected} onDeleteSelected={deleteSelected}
             />
           </div>
         </div>
