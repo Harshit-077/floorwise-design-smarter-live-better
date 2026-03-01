@@ -1,9 +1,11 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment, ContactShadows, Html } from '@react-three/drei';
 import { useMemo } from 'react';
 import type { Room, FurnitureItem, DoorItem } from '@/types/editor';
 
-const SCALE = 0.02; // Convert canvas units to 3D units
+const SCALE = 0.02;
+
+function toM(px: number) { return (px / 50 * 1.5).toFixed(1); }
 
 function RoomMesh({ room }: { room: Room }) {
   const w = room.width * SCALE;
@@ -13,32 +15,33 @@ function RoomMesh({ room }: { room: Room }) {
 
   return (
     <group position={[(room.x + room.width / 2) * SCALE - 10, 0, (room.y + room.height / 2) * SCALE - 7]}>
-      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial color="#e8e8e8" roughness={0.8} />
       </mesh>
-      {/* Walls */}
-      {/* Back wall */}
       <mesh position={[0, wallHeight / 2, -h / 2]} castShadow>
         <boxGeometry args={[w, wallHeight, wallThickness]} />
         <meshStandardMaterial color="#d4d4d4" roughness={0.6} />
       </mesh>
-      {/* Front wall */}
       <mesh position={[0, wallHeight / 2, h / 2]} castShadow>
         <boxGeometry args={[w, wallHeight, wallThickness]} />
         <meshStandardMaterial color="#d0d0d0" roughness={0.6} />
       </mesh>
-      {/* Left wall */}
       <mesh position={[-w / 2, wallHeight / 2, 0]} castShadow>
         <boxGeometry args={[wallThickness, wallHeight, h]} />
         <meshStandardMaterial color="#c8c8c8" roughness={0.6} />
       </mesh>
-      {/* Right wall */}
       <mesh position={[w / 2, wallHeight / 2, 0]} castShadow>
         <boxGeometry args={[wallThickness, wallHeight, h]} />
         <meshStandardMaterial color="#cccccc" roughness={0.6} />
       </mesh>
+      {/* Label */}
+      <Html position={[0, wallHeight + 0.2, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg px-2 py-1 text-center whitespace-nowrap shadow-md">
+          <div className="text-[10px] font-display font-bold text-foreground">{room.name}</div>
+          <div className="text-[8px] text-muted-foreground font-mono">{toM(room.width)}m × {toM(room.height)}m</div>
+        </div>
+      </Html>
     </group>
   );
 }
@@ -64,14 +67,18 @@ function FurnitureMesh({ item }: { item: FurnitureItem }) {
   const rotY = (item.rotation * Math.PI) / 180;
 
   return (
-    <mesh
-      position={[(item.x + item.width / 2) * SCALE - 10, furnitureHeight / 2, (item.y + item.height / 2) * SCALE - 7]}
-      rotation={[0, rotY, 0]}
-      castShadow
-    >
-      <boxGeometry args={[w, furnitureHeight, h]} />
-      <meshStandardMaterial color={color} roughness={0.5} metalness={0.1} />
-    </mesh>
+    <group position={[(item.x + item.width / 2) * SCALE - 10, 0, (item.y + item.height / 2) * SCALE - 7]} rotation={[0, rotY, 0]}>
+      <mesh position={[0, furnitureHeight / 2, 0]} castShadow>
+        <boxGeometry args={[w, furnitureHeight, h]} />
+        <meshStandardMaterial color={color} roughness={0.5} metalness={0.1} />
+      </mesh>
+      <Html position={[0, furnitureHeight + 0.15, 0]} center distanceFactor={8} style={{ pointerEvents: 'none' }}>
+        <div className="bg-card/85 backdrop-blur-sm border rounded px-1.5 py-0.5 text-center whitespace-nowrap shadow-sm">
+          <div className="text-[8px] font-medium text-foreground">{item.label}</div>
+          <div className="text-[7px] text-muted-foreground font-mono">{toM(item.width)}×{toM(item.height)}m</div>
+        </div>
+      </Html>
+    </group>
   );
 }
 
@@ -80,14 +87,18 @@ function DoorMesh({ door }: { door: DoorItem }) {
   const rotY = (door.rotation * Math.PI) / 180;
 
   return (
-    <mesh
-      position={[(door.x + door.width / 2) * SCALE - 10, 0.5, (door.y + door.height / 2) * SCALE - 7]}
-      rotation={[0, rotY, 0]}
-      castShadow
-    >
-      <boxGeometry args={[w, 1, 0.04]} />
-      <meshStandardMaterial color="#8B4513" roughness={0.4} metalness={0.05} />
-    </mesh>
+    <group position={[(door.x + door.width / 2) * SCALE - 10, 0, (door.y + door.height / 2) * SCALE - 7]} rotation={[0, rotY, 0]}>
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[w, 1, 0.04]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.4} metalness={0.05} />
+      </mesh>
+      <Html position={[0, 1.15, 0]} center distanceFactor={8} style={{ pointerEvents: 'none' }}>
+        <div className="bg-card/85 backdrop-blur-sm border rounded px-1.5 py-0.5 text-center whitespace-nowrap shadow-sm">
+          <div className="text-[8px] font-medium text-foreground">Door</div>
+          <div className="text-[7px] text-muted-foreground font-mono">{toM(door.width)}m</div>
+        </div>
+      </Html>
+    </group>
   );
 }
 
@@ -123,14 +134,7 @@ export default function ThreeDView({ rooms, furniture, doors }: Props) {
     <div className="w-full h-full rounded-xl overflow-hidden border bg-card">
       <Canvas shadows>
         <PerspectiveCamera makeDefault position={[8, 8, 8]} fov={50} />
-        <OrbitControls
-          enablePan
-          enableZoom
-          enableRotate
-          maxPolarAngle={Math.PI / 2.1}
-          minDistance={3}
-          maxDistance={25}
-        />
+        <OrbitControls enablePan enableZoom enableRotate maxPolarAngle={Math.PI / 2.1} minDistance={3} maxDistance={25} />
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 15, 10]} intensity={1} castShadow shadow-mapSize={2048} />
         <directionalLight position={[-5, 10, -5]} intensity={0.3} />
