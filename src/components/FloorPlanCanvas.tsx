@@ -11,18 +11,20 @@ interface Props {
   onMoveFurniture: (id: string, x: number, y: number) => void;
   onMoveRoom: (id: string, x: number, y: number) => void;
   onResizeRoom: (id: string, width: number, height: number) => void;
+  onResizeFurniture: (id: string, width: number, height: number) => void;
+  onResizeDoor: (id: string, width: number, height: number) => void;
   onMoveDoor: (id: string, x: number, y: number) => void;
   onDeleteItem: (id: string) => void;
   backgroundImage?: string | null;
 }
 
-type DragMode = 
+type DragMode =
   | { mode: 'move'; id: string; type: 'room' | 'furniture' | 'door'; offsetX: number; offsetY: number }
-  | { mode: 'resize'; id: string; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number };
+  | { mode: 'resize'; id: string; itemType: 'room' | 'furniture' | 'door'; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number };
 
 export default function FloorPlanCanvas({
   rooms, furniture, doors, selectedId, activeTool,
-  onSelectItem, onMoveFurniture, onMoveRoom, onResizeRoom, onMoveDoor, onDeleteItem,
+  onSelectItem, onMoveFurniture, onMoveRoom, onResizeRoom, onResizeFurniture, onResizeDoor, onMoveDoor, onDeleteItem,
   backgroundImage,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -56,16 +58,10 @@ export default function FloorPlanCanvas({
     onSelectItem(id);
   }, [activeTool, getSVGPoint, onSelectItem, onDeleteItem]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, room: Room, handle: string) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent, id: string, itemType: 'room' | 'furniture' | 'door', handle: string, x: number, y: number, w: number, h: number) => {
     e.stopPropagation();
     const pt = getSVGPoint(e);
-    setDrag({ mode: 'resize', id: room.id, handle, startX: pt.x, startY: pt.y, origX: room.x, origY: room.y, origW: room.width, origH: room.height });
-  }, [getSVGPoint]);
-
-  const handleResizeTouchStart = useCallback((e: React.TouchEvent, room: Room, handle: string) => {
-    e.stopPropagation();
-    const pt = getSVGPoint(e);
-    setDrag({ mode: 'resize', id: room.id, handle, startX: pt.x, startY: pt.y, origX: room.x, origY: room.y, origW: room.width, origH: room.height });
+    setDrag({ mode: 'resize', id, itemType, handle, startX: pt.x, startY: pt.y, origX: x, origY: y, origW: w, origH: h });
   }, [getSVGPoint]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -82,11 +78,8 @@ export default function FloorPlanCanvas({
     } else if (drag.mode === 'resize') {
       const dx = pt.x - drag.startX;
       const dy = pt.y - drag.startY;
-      let newW = drag.origW;
-      let newH = drag.origH;
-      let newX = drag.origX;
-      let newY = drag.origY;
-      const MIN = 60;
+      let newW = drag.origW, newH = drag.origH, newX = drag.origX, newY = drag.origY;
+      const MIN = drag.itemType === 'door' ? 20 : drag.itemType === 'furniture' ? 15 : 60;
 
       if (drag.handle.includes('e')) newW = Math.max(MIN, Math.round((drag.origW + dx) / 10) * 10);
       if (drag.handle.includes('s')) newH = Math.max(MIN, Math.round((drag.origH + dy) / 10) * 10);
@@ -101,10 +94,18 @@ export default function FloorPlanCanvas({
         if (newH !== MIN) newY = drag.origY + moved;
       }
 
-      onMoveRoom(drag.id, newX, newY);
-      onResizeRoom(drag.id, newW, newH);
+      if (drag.itemType === 'room') {
+        onMoveRoom(drag.id, newX, newY);
+        onResizeRoom(drag.id, newW, newH);
+      } else if (drag.itemType === 'furniture') {
+        onMoveFurniture(drag.id, newX, newY);
+        onResizeFurniture(drag.id, newW, newH);
+      } else {
+        onMoveDoor(drag.id, newX, newY);
+        onResizeDoor(drag.id, newW, newH);
+      }
     }
-  }, [drag, getSVGPoint, onMoveFurniture, onMoveRoom, onMoveDoor, onResizeRoom]);
+  }, [drag, getSVGPoint, onMoveFurniture, onMoveRoom, onMoveDoor, onResizeRoom, onResizeFurniture, onResizeDoor]);
 
   const handleEnd = useCallback(() => setDrag(null), []);
 
@@ -133,26 +134,53 @@ export default function FloorPlanCanvas({
   };
 
   const HANDLE_SIZE = 10;
-  const renderResizeHandles = (room: Room) => {
-    if (selectedId !== room.id || activeTool !== 'select') return null;
+  const renderResizeHandles = (id: string, x: number, y: number, w: number, h: number, itemType: 'room' | 'furniture' | 'door') => {
+    if (selectedId !== id || activeTool !== 'select') return null;
+    const hs = itemType === 'room' ? HANDLE_SIZE : 8;
     const handles = [
-      { key: 'n', x: room.x + room.width / 2 - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'ns-resize' },
-      { key: 's', x: room.x + room.width / 2 - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'ns-resize' },
-      { key: 'w', x: room.x - HANDLE_SIZE / 2, y: room.y + room.height / 2 - HANDLE_SIZE / 2, cursor: 'ew-resize' },
-      { key: 'e', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y + room.height / 2 - HANDLE_SIZE / 2, cursor: 'ew-resize' },
-      { key: 'nw', x: room.x - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'nwse-resize' },
-      { key: 'ne', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y - HANDLE_SIZE / 2, cursor: 'nesw-resize' },
-      { key: 'sw', x: room.x - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'nesw-resize' },
-      { key: 'se', x: room.x + room.width - HANDLE_SIZE / 2, y: room.y + room.height - HANDLE_SIZE / 2, cursor: 'nwse-resize' },
+      { key: 'n', cx: x + w / 2 - hs / 2, cy: y - hs / 2, cursor: 'ns-resize' },
+      { key: 's', cx: x + w / 2 - hs / 2, cy: y + h - hs / 2, cursor: 'ns-resize' },
+      { key: 'w', cx: x - hs / 2, cy: y + h / 2 - hs / 2, cursor: 'ew-resize' },
+      { key: 'e', cx: x + w - hs / 2, cy: y + h / 2 - hs / 2, cursor: 'ew-resize' },
+      { key: 'nw', cx: x - hs / 2, cy: y - hs / 2, cursor: 'nwse-resize' },
+      { key: 'ne', cx: x + w - hs / 2, cy: y - hs / 2, cursor: 'nesw-resize' },
+      { key: 'sw', cx: x - hs / 2, cy: y + h - hs / 2, cursor: 'nesw-resize' },
+      { key: 'se', cx: x + w - hs / 2, cy: y + h - hs / 2, cursor: 'nwse-resize' },
     ];
     return handles.map(h => (
       <rect
         key={h.key}
-        x={h.x} y={h.y} width={HANDLE_SIZE} height={HANDLE_SIZE}
+        x={h.cx} y={h.cy} width={hs} height={hs}
         fill="hsl(0 0% 20%)" stroke="hsl(0 0% 60%)" strokeWidth="1" rx="2"
         style={{ cursor: h.cursor }}
-        onMouseDown={(e) => handleResizeStart(e, room, h.key)}
-        onTouchStart={(e) => handleResizeTouchStart(e, room, h.key)}
+        onMouseDown={(e) => handleResizeStart(e, id, itemType, h.key, x, y, w, h as any)}
+        onTouchStart={(e) => handleResizeStart(e, id, itemType, h.key, x, y, w, h as any)}
+      />
+    ));
+  };
+
+  // Fix: the h in the map callback shadows the outer h variable, need proper args
+  const renderHandles = (id: string, x: number, y: number, width: number, height: number, itemType: 'room' | 'furniture' | 'door') => {
+    if (selectedId !== id || activeTool !== 'select') return null;
+    const hs = itemType === 'room' ? HANDLE_SIZE : 8;
+    const handles = [
+      { key: 'n', hx: x + width / 2 - hs / 2, hy: y - hs / 2, cursor: 'ns-resize' },
+      { key: 's', hx: x + width / 2 - hs / 2, hy: y + height - hs / 2, cursor: 'ns-resize' },
+      { key: 'w', hx: x - hs / 2, hy: y + height / 2 - hs / 2, cursor: 'ew-resize' },
+      { key: 'e', hx: x + width - hs / 2, hy: y + height / 2 - hs / 2, cursor: 'ew-resize' },
+      { key: 'nw', hx: x - hs / 2, hy: y - hs / 2, cursor: 'nwse-resize' },
+      { key: 'ne', hx: x + width - hs / 2, hy: y - hs / 2, cursor: 'nesw-resize' },
+      { key: 'sw', hx: x - hs / 2, hy: y + height - hs / 2, cursor: 'nesw-resize' },
+      { key: 'se', hx: x + width - hs / 2, hy: y + height - hs / 2, cursor: 'nwse-resize' },
+    ];
+    return handles.map(handle => (
+      <rect
+        key={handle.key}
+        x={handle.hx} y={handle.hy} width={hs} height={hs}
+        fill="hsl(0 0% 20%)" stroke="hsl(0 0% 60%)" strokeWidth="1" rx="2"
+        style={{ cursor: handle.cursor }}
+        onMouseDown={(e) => handleResizeStart(e, id, itemType, handle.key, x, y, width, height)}
+        onTouchStart={(e) => handleResizeStart(e, id, itemType, handle.key, x, y, width, height)}
       />
     ));
   };
@@ -193,93 +221,80 @@ export default function FloorPlanCanvas({
             <rect
               x={room.x} y={room.y} width={room.width} height={room.height}
               fill={room.color} stroke={selectedId === room.id ? 'hsl(0 0% 40%)' : 'hsl(0 0% 15%)'}
-              strokeWidth={selectedId === room.id ? 3 : 2} rx="4"
-              opacity={0.6}
+              strokeWidth={selectedId === room.id ? 3 : 2} rx="4" opacity={0.6}
             />
-            <text
-              x={room.x + room.width / 2} y={room.y + room.height / 2}
+            <text x={room.x + room.width / 2} y={room.y + room.height / 2}
               textAnchor="middle" dominantBaseline="central"
               fontSize="13" fontWeight="600" fill="hsl(0 0% 15%)"
               fontFamily="Space Grotesk, sans-serif" pointerEvents="none"
-            >
-              {room.name}
-            </text>
-            <text
-              x={room.x + room.width / 2} y={room.y + room.height / 2 + 18}
+            >{room.name}</text>
+            <text x={room.x + room.width / 2} y={room.y + room.height / 2 + 18}
               textAnchor="middle" dominantBaseline="central"
               fontSize="10" fill="hsl(0 0% 45%)" pointerEvents="none"
-            >
-              {(room.width / 50 * 1.5).toFixed(1)}m × {(room.height / 50 * 1.5).toFixed(1)}m
-            </text>
+            >{(room.width / 50 * 1.5).toFixed(1)}m × {(room.height / 50 * 1.5).toFixed(1)}m</text>
           </g>
-          {renderResizeHandles(room)}
+          {renderHandles(room.id, room.x, room.y, room.width, room.height, 'room')}
         </g>
       ))}
 
       {/* Doors */}
       {doors.map(door => (
-        <g key={door.id}
-          onMouseDown={(e) => handleMouseDown(e, door.id, 'door', door.x, door.y)}
-          onTouchStart={(e) => handleTouchStart(e, door.id, 'door', door.x, door.y)}
-          style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
-          transform={`rotate(${door.rotation} ${door.x + door.width / 2} ${door.y + door.height / 2})`}
-        >
-          <rect
-            x={door.x} y={door.y} width={door.width} height={door.height}
-            fill="hsl(0 0% 50%)"
-            stroke={selectedId === door.id ? 'hsl(0 0% 20%)' : 'hsl(0 0% 10%)'}
-            strokeWidth={selectedId === door.id ? 2.5 : 1}
-            rx="2"
-          />
-          <path
-            d={`M ${door.x} ${door.y + door.height} A ${door.width} ${door.width} 0 0 1 ${door.x + door.width} ${door.y + door.height}`}
-            fill="none" stroke="hsl(0 0% 40%)" strokeWidth="1" strokeDasharray="3 2"
-            pointerEvents="none"
-          />
-          <text
-            x={door.x + door.width / 2} y={door.y + door.height / 2}
-            textAnchor="middle" dominantBaseline="central"
-            fontSize="7" fill="hsl(0 0% 95%)" fontWeight="500" pointerEvents="none"
+        <g key={door.id}>
+          <g
+            onMouseDown={(e) => handleMouseDown(e, door.id, 'door', door.x, door.y)}
+            onTouchStart={(e) => handleTouchStart(e, door.id, 'door', door.x, door.y)}
+            style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
+            transform={`rotate(${door.rotation} ${door.x + door.width / 2} ${door.y + door.height / 2})`}
           >
-            Door
-          </text>
+            <rect x={door.x} y={door.y} width={door.width} height={door.height}
+              fill="hsl(0 0% 50%)" stroke={selectedId === door.id ? 'hsl(0 0% 20%)' : 'hsl(0 0% 10%)'}
+              strokeWidth={selectedId === door.id ? 2.5 : 1} rx="2"
+            />
+            <path
+              d={`M ${door.x} ${door.y + door.height} A ${door.width} ${door.width} 0 0 1 ${door.x + door.width} ${door.y + door.height}`}
+              fill="none" stroke="hsl(0 0% 40%)" strokeWidth="1" strokeDasharray="3 2" pointerEvents="none"
+            />
+            <text x={door.x + door.width / 2} y={door.y + door.height / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="7" fill="hsl(0 0% 95%)" fontWeight="500" pointerEvents="none"
+            >Door</text>
+          </g>
+          {renderHandles(door.id, door.x, door.y, door.width, door.height, 'door')}
         </g>
       ))}
 
       {/* Furniture */}
       {furniture.map(item => (
-        <g key={item.id}
-          onMouseDown={(e) => handleMouseDown(e, item.id, 'furniture', item.x, item.y)}
-          onTouchStart={(e) => handleTouchStart(e, item.id, 'furniture', item.x, item.y)}
-          style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
-          transform={`rotate(${item.rotation} ${item.x + item.width / 2} ${item.y + item.height / 2})`}
-        >
-          <rect
-            x={item.x} y={item.y} width={item.width} height={item.height}
-            fill={getFurnitureColor(item.type)}
-            stroke={selectedId === item.id ? 'hsl(0 0% 50%)' : 'hsl(0 0% 10%)'}
-            strokeWidth={selectedId === item.id ? 2.5 : 1}
-            rx="3" opacity={0.85}
-          />
-          <text
-            x={item.x + item.width / 2} y={item.y + item.height / 2}
-            textAnchor="middle" dominantBaseline="central"
-            fontSize={Math.min(item.width, item.height) < 30 ? '7' : '9'}
-            fill="hsl(0 0% 95%)" fontWeight="500" pointerEvents="none"
+        <g key={item.id}>
+          <g
+            onMouseDown={(e) => handleMouseDown(e, item.id, 'furniture', item.x, item.y)}
+            onTouchStart={(e) => handleTouchStart(e, item.id, 'furniture', item.x, item.y)}
+            style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
+            transform={`rotate(${item.rotation} ${item.x + item.width / 2} ${item.y + item.height / 2})`}
           >
-            {item.label}
-          </text>
+            <rect x={item.x} y={item.y} width={item.width} height={item.height}
+              fill={getFurnitureColor(item.type)}
+              stroke={selectedId === item.id ? 'hsl(0 0% 50%)' : 'hsl(0 0% 10%)'}
+              strokeWidth={selectedId === item.id ? 2.5 : 1} rx="3" opacity={0.85}
+            />
+            <text x={item.x + item.width / 2} y={item.y + item.height / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize={Math.min(item.width, item.height) < 30 ? '7' : '9'}
+              fill="hsl(0 0% 95%)" fontWeight="500" pointerEvents="none"
+            >{item.label}</text>
+            <text x={item.x + item.width / 2} y={item.y + item.height / 2 + 12}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="6" fill="hsl(0 0% 70%)" pointerEvents="none"
+            >{(item.width / 50 * 1.5).toFixed(1)}×{(item.height / 50 * 1.5).toFixed(1)}m</text>
+          </g>
+          {renderHandles(item.id, item.x, item.y, item.width, item.height, 'furniture')}
         </g>
       ))}
 
-      {/* Empty state */}
       {rooms.length === 0 && furniture.length === 0 && doors.length === 0 && (
-        <text
-          x="500" y="350" textAnchor="middle" dominantBaseline="central"
+        <text x="500" y="350" textAnchor="middle" dominantBaseline="central"
           fontSize="16" fill="hsl(0 0% 65%)" fontFamily="Space Grotesk, sans-serif"
-        >
-          Add rooms from the panel to get started
-        </text>
+        >Add rooms from the panel to get started</text>
       )}
     </svg>
   );
