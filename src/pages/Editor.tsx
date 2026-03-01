@@ -189,8 +189,9 @@ export default function EditorPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className={`${showPanel ? 'absolute inset-0 z-30 bg-background/80 backdrop-blur-sm md:relative md:bg-transparent md:backdrop-blur-none' : 'hidden md:block'}`}>
-          <div className={`${showPanel ? 'w-64 h-full flex flex-col gap-2 overflow-y-auto p-2' : 'w-64 flex flex-col gap-2 overflow-y-auto p-2'}`}>
+        <div className={`${showPanel ? 'absolute inset-0 z-30 bg-background/80 backdrop-blur-sm md:relative md:inset-auto md:bg-transparent md:backdrop-blur-none' : 'hidden md:block'}`}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPanel(false); }}>
+          <div className="w-72 md:w-64 h-full flex flex-col gap-2 overflow-y-auto p-2 bg-card md:bg-transparent shadow-xl md:shadow-none">
             <FurniturePanel
               onAddFurniture={(type, label, w, h) => { addFurniture(type, label, w, h); setShowPanel(false); }}
               onAddRoom={(name, w, h, c) => { addRoom(name, w, h, c); setShowPanel(false); }}

@@ -15,7 +15,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card rounded-none border-x-0 border-t-0">
       <div className="container flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-md">
             <PenTool className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>

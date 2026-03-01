@@ -122,15 +122,15 @@ export default function FloorPlanCanvas({
 
   const getFurnitureColor = (type: string) => {
     const colors: Record<string, string> = {
-      sofa: 'hsl(0 0% 25%)', armchair: 'hsl(0 0% 30%)', 'coffee-table': 'hsl(0 0% 40%)',
-      'tv-unit': 'hsl(0 0% 22%)', bookshelf: 'hsl(0 0% 35%)', 'bed-double': 'hsl(0 0% 28%)',
-      'bed-single': 'hsl(0 0% 32%)', wardrobe: 'hsl(0 0% 27%)', nightstand: 'hsl(0 0% 38%)',
-      dresser: 'hsl(0 0% 33%)', 'dining-table': 'hsl(0 0% 36%)', chair: 'hsl(0 0% 40%)',
-      'kitchen-counter': 'hsl(0 0% 42%)', stove: 'hsl(0 0% 20%)', fridge: 'hsl(0 0% 75%)',
-      sink: 'hsl(0 0% 55%)', bathtub: 'hsl(0 0% 65%)', toilet: 'hsl(0 0% 80%)',
-      basin: 'hsl(0 0% 60%)', desk: 'hsl(0 0% 34%)', 'office-chair': 'hsl(0 0% 30%)',
+      sofa: 'hsl(245 58% 45%)', armchair: 'hsl(245 50% 50%)', 'coffee-table': 'hsl(30 60% 45%)',
+      'tv-unit': 'hsl(220 40% 35%)', bookshelf: 'hsl(30 50% 40%)', 'bed-double': 'hsl(262 50% 45%)',
+      'bed-single': 'hsl(262 45% 50%)', wardrobe: 'hsl(200 40% 38%)', nightstand: 'hsl(30 45% 42%)',
+      dresser: 'hsl(200 35% 42%)', 'dining-table': 'hsl(30 55% 42%)', chair: 'hsl(30 50% 48%)',
+      'kitchen-counter': 'hsl(199 50% 40%)', stove: 'hsl(0 50% 40%)', fridge: 'hsl(199 60% 65%)',
+      sink: 'hsl(199 50% 55%)', bathtub: 'hsl(199 55% 60%)', toilet: 'hsl(0 0% 75%)',
+      basin: 'hsl(199 45% 55%)', desk: 'hsl(30 45% 40%)', 'office-chair': 'hsl(245 40% 45%)',
     };
-    return colors[type] || 'hsl(0 0% 35%)';
+    return colors[type] || 'hsl(245 40% 45%)';
   };
 
   const HANDLE_SIZE = 10;
@@ -151,7 +151,7 @@ export default function FloorPlanCanvas({
       <rect
         key={h.key}
         x={h.cx} y={h.cy} width={hs} height={hs}
-        fill="hsl(0 0% 20%)" stroke="hsl(0 0% 60%)" strokeWidth="1" rx="2"
+        fill="hsl(245 58% 51%)" stroke="hsl(245 58% 70%)" strokeWidth="1" rx="2"
         style={{ cursor: h.cursor }}
         onMouseDown={(e) => handleResizeStart(e, id, itemType, h.key, x, y, w, h as any)}
         onTouchStart={(e) => handleResizeStart(e, id, itemType, h.key, x, y, w, h as any)}
@@ -177,7 +177,7 @@ export default function FloorPlanCanvas({
       <rect
         key={handle.key}
         x={handle.hx} y={handle.hy} width={hs} height={hs}
-        fill="hsl(0 0% 20%)" stroke="hsl(0 0% 60%)" strokeWidth="1" rx="2"
+        fill="hsl(245 58% 51%)" stroke="hsl(245 58% 70%)" strokeWidth="1" rx="2"
         style={{ cursor: handle.cursor }}
         onMouseDown={(e) => handleResizeStart(e, id, itemType, handle.key, x, y, width, height)}
         onTouchStart={(e) => handleResizeStart(e, id, itemType, handle.key, x, y, width, height)}
@@ -220,7 +220,7 @@ export default function FloorPlanCanvas({
           >
             <rect
               x={room.x} y={room.y} width={room.width} height={room.height}
-              fill={room.color} stroke={selectedId === room.id ? 'hsl(0 0% 40%)' : 'hsl(0 0% 15%)'}
+              fill={room.color} stroke={selectedId === room.id ? 'hsl(245 58% 51%)' : 'hsl(222 47% 20%)'}
               strokeWidth={selectedId === room.id ? 3 : 2} rx="4" opacity={0.6}
             />
             <text x={room.x + room.width / 2} y={room.y + room.height / 2}
@@ -247,7 +247,7 @@ export default function FloorPlanCanvas({
             transform={`rotate(${door.rotation} ${door.x + door.width / 2} ${door.y + door.height / 2})`}
           >
             <rect x={door.x} y={door.y} width={door.width} height={door.height}
-              fill="hsl(0 0% 50%)" stroke={selectedId === door.id ? 'hsl(0 0% 20%)' : 'hsl(0 0% 10%)'}
+              fill="hsl(152 60% 40%)" stroke={selectedId === door.id ? 'hsl(245 58% 51%)' : 'hsl(152 60% 25%)'}
               strokeWidth={selectedId === door.id ? 2.5 : 1} rx="2"
             />
             <path
@@ -274,7 +274,7 @@ export default function FloorPlanCanvas({
           >
             <rect x={item.x} y={item.y} width={item.width} height={item.height}
               fill={getFurnitureColor(item.type)}
-              stroke={selectedId === item.id ? 'hsl(0 0% 50%)' : 'hsl(0 0% 10%)'}
+              stroke={selectedId === item.id ? 'hsl(245 58% 60%)' : 'hsl(222 30% 20%)'}
               strokeWidth={selectedId === item.id ? 2.5 : 1} rx="3" opacity={0.85}
             />
             <text x={item.x + item.width / 2} y={item.y + item.height / 2}
