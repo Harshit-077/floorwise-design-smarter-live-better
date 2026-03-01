@@ -127,11 +127,11 @@ function analyzeLayout(rooms: Room[], furniture: FurnitureItem[], doors: DoorIte
 
   return {
     scores: [
-      { label: 'Circulation', score: Math.round(circScore), color: 'hsl(0 0% 35%)' },
-      { label: 'Space Efficiency', score: Math.round(spaceScore), color: 'hsl(0 0% 45%)' },
-      { label: 'Storage', score: Math.round(storageScore), color: 'hsl(0 0% 50%)' },
-      { label: 'Natural Light', score: Math.round(lightScore), color: 'hsl(0 0% 55%)' },
-      { label: 'Door Access', score: Math.round(doorAccessScore), color: 'hsl(0 0% 40%)' },
+      { label: 'Circulation', score: Math.round(circScore), color: 'hsl(245 58% 51%)' },
+      { label: 'Space Efficiency', score: Math.round(spaceScore), color: 'hsl(199 89% 48%)' },
+      { label: 'Storage', score: Math.round(storageScore), color: 'hsl(262 83% 58%)' },
+      { label: 'Natural Light', score: Math.round(lightScore), color: 'hsl(38 92% 50%)' },
+      { label: 'Door Access', score: Math.round(doorAccessScore), color: 'hsl(152 69% 41%)' },
     ],
     overall,
     suggestions,
@@ -147,7 +147,7 @@ export default function AnalysisPanel({ rooms, furniture, doors, onClose }: Prop
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="w-full md:w-80 flex-shrink-0 glass-card overflow-hidden flex flex-col h-full"
+      className="absolute inset-0 z-40 md:relative md:inset-auto w-full md:w-80 flex-shrink-0 glass-card overflow-hidden flex flex-col h-full"
     >
       <div className="p-4 border-b flex items-center justify-between">
         <div>

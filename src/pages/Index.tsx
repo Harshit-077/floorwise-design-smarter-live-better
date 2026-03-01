@@ -76,8 +76,8 @@ export default function Index() {
               <motion.div key={f.title} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
                 className="glass-card p-5 md:p-6 hover:shadow-xl transition-shadow duration-300 group"
               >
-                <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Icon className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-md">
+                  <Icon className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <h3 className="font-display text-lg font-semibold mb-2">{f.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
