@@ -94,7 +94,7 @@ export default function Index() {
             <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold text-primary-foreground mb-4">
               Ready to validate your layout?
             </h2>
-            <p className="text-accent/80 text-base md:text-lg mb-8 max-w-lg mx-auto">
+            <p className="text-base md:text-lg mb-8 max-w-lg mx-auto text-primary-foreground">
               Stop guessing and start designing with confidence. FloorWise helps you make informed spatial decisions.
             </p>
             <Link to="/editor">
