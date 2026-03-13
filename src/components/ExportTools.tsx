@@ -15,7 +15,7 @@ interface Props {
   onLoadProject: (data: ProjectData) => void;
 }
 
-export default function ExportTools({ isOpen, onClose, rooms, furniture, doors, onLoadProject }: Props) {
+export default function ExportTools({ isOpen, onClose, rooms, furniture, doors, windows, onLoadProject }: Props) {
   const [projectName, setProjectName] = useState('My FloorPlan');
 
   const saveProject = () => {
