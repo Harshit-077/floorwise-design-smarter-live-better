@@ -22,7 +22,7 @@ export default function ExportTools({ isOpen, onClose, rooms, furniture, doors, 
     const data: ProjectData = {
       id: `proj-${Date.now()}`,
       name: projectName,
-      rooms, furniture, doors,
+      rooms, furniture, doors, windows,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

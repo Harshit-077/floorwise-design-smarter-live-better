@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FURNITURE_CATALOG, ROOM_PRESETS, DOOR_PRESETS, WINDOW_PRESETS, PLOT_PRESETS } from '@/types/editor';
 import { Button } from '@/components/ui/button';
-import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2, DoorOpen, Plus, Sparkles, Car, Stairs } from 'lucide-react';
+import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2, DoorOpen, Plus, Sparkles, Car } from 'lucide-react';
 
 interface Props {
   onAddFurniture: (type: string, label: string, width: number, height: number) => void;

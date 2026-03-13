@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, X, Loader2, CheckCircle, ScanLine, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Camera, X, CheckCircle, ScanLine, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
