@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Download, Save, FolderOpen, FileImage, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Room, FurnitureItem, DoorItem, ProjectData } from '@/types/editor';
+import type { Room, FurnitureItem, DoorItem, WindowItem, ProjectData } from '@/types/editor';
 import { toast } from 'sonner';
 
 interface Props {
@@ -11,17 +11,18 @@ interface Props {
   rooms: Room[];
   furniture: FurnitureItem[];
   doors: DoorItem[];
+  windows: WindowItem[];
   onLoadProject: (data: ProjectData) => void;
 }
 
-export default function ExportTools({ isOpen, onClose, rooms, furniture, doors, onLoadProject }: Props) {
+export default function ExportTools({ isOpen, onClose, rooms, furniture, doors, windows, onLoadProject }: Props) {
   const [projectName, setProjectName] = useState('My FloorPlan');
 
   const saveProject = () => {
     const data: ProjectData = {
       id: `proj-${Date.now()}`,
       name: projectName,
-      rooms, furniture, doors,
+      rooms, furniture, doors, windows,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, ContactShadows, Html } from '@react-three/drei';
 import { useMemo } from 'react';
-import type { Room, FurnitureItem, DoorItem } from '@/types/editor';
+import type { Room, FurnitureItem, DoorItem, WindowItem } from '@/types/editor';
 
 const SCALE = 0.02;
 
@@ -35,7 +35,6 @@ function RoomMesh({ room }: { room: Room }) {
         <boxGeometry args={[wallThickness, wallHeight, h]} />
         <meshStandardMaterial color="#cccccc" roughness={0.6} />
       </mesh>
-      {/* Label */}
       <Html position={[0, wallHeight + 0.2, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
         <div className="bg-card/90 backdrop-blur-sm border rounded-lg px-2 py-1 text-center whitespace-nowrap shadow-md">
           <div className="text-[10px] font-display font-bold text-foreground">{room.name}</div>
@@ -60,6 +59,7 @@ function FurnitureMesh({ item }: { item: FurnitureItem }) {
       'kitchen-counter': '#888', stove: '#444', fridge: '#aaa',
       sink: '#999', bathtub: '#bbb', toilet: '#ccc',
       basin: '#aab', desk: '#6a5a4a', 'office-chair': '#555',
+      'car-porch': '#888', staircase: '#7a6a5a',
     };
     return colors[item.type] || '#666';
   }, [item.type]);
@@ -102,6 +102,30 @@ function DoorMesh({ door }: { door: DoorItem }) {
   );
 }
 
+function WindowMesh({ win }: { win: WindowItem }) {
+  const w = win.width * SCALE;
+  const rotY = (win.rotation * Math.PI) / 180;
+
+  return (
+    <group position={[(win.x + win.width / 2) * SCALE - 10, 0, (win.y + win.height / 2) * SCALE - 7]} rotation={[0, rotY, 0]}>
+      <mesh position={[0, 0.6, 0]} castShadow>
+        <boxGeometry args={[w, 0.5, 0.03]} />
+        <meshStandardMaterial color="#87CEEB" roughness={0.2} metalness={0.3} transparent opacity={0.6} />
+      </mesh>
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[w, 0.5, 0.04]} />
+        <meshStandardMaterial color="#666" roughness={0.5} wireframe />
+      </mesh>
+      <Html position={[0, 1.0, 0]} center distanceFactor={8} style={{ pointerEvents: 'none' }}>
+        <div className="bg-card/85 backdrop-blur-sm border rounded px-1.5 py-0.5 text-center whitespace-nowrap shadow-sm">
+          <div className="text-[8px] font-medium text-foreground">Window</div>
+          <div className="text-[7px] text-muted-foreground font-mono">{toM(win.width)}m</div>
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 function getFurnitureHeight(type: string): number {
   const heights: Record<string, number> = {
     sofa: 0.4, armchair: 0.4, 'coffee-table': 0.2, 'tv-unit': 0.25,
@@ -110,6 +134,7 @@ function getFurnitureHeight(type: string): number {
     'dining-table': 0.35, chair: 0.4, 'kitchen-counter': 0.4,
     stove: 0.4, fridge: 0.8, sink: 0.4, bathtub: 0.3,
     toilet: 0.35, basin: 0.35, desk: 0.35, 'office-chair': 0.45,
+    'car-porch': 0.05, staircase: 0.6,
   };
   return heights[type] || 0.3;
 }
@@ -127,9 +152,10 @@ interface Props {
   rooms: Room[];
   furniture: FurnitureItem[];
   doors: DoorItem[];
+  windows: WindowItem[];
 }
 
-export default function ThreeDView({ rooms, furniture, doors }: Props) {
+export default function ThreeDView({ rooms, furniture, doors, windows }: Props) {
   return (
     <div className="w-full h-full rounded-xl overflow-hidden border bg-card">
       <Canvas shadows>
@@ -144,6 +170,7 @@ export default function ThreeDView({ rooms, furniture, doors }: Props) {
         {rooms.map(room => <RoomMesh key={room.id} room={room} />)}
         {furniture.map(item => <FurnitureMesh key={item.id} item={item} />)}
         {doors.map(door => <DoorMesh key={door.id} door={door} />)}
+        {windows.map(win => <WindowMesh key={win.id} win={win} />)}
       </Canvas>
     </div>
   );
