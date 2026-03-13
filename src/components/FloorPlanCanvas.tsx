@@ -1,5 +1,8 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+<<<<<<< HEAD
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 import type { Room, FurnitureItem, DoorItem, WindowItem, EditorTool } from '@/types/editor';
 
 interface Props {
@@ -15,15 +18,20 @@ interface Props {
   onResizeRoom: (id: string, width: number, height: number) => void;
   onResizeFurniture: (id: string, width: number, height: number) => void;
   onResizeDoor: (id: string, width: number, height: number) => void;
+  onResizeWindow: (id: string, width: number, height: number) => void;
   onMoveDoor: (id: string, x: number, y: number) => void;
   onMoveWindow: (id: string, x: number, y: number) => void;
+<<<<<<< HEAD
   onResizeWindow: (id: string, width: number, height: number) => void;
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   onDeleteItem: (id: string) => void;
   backgroundImage?: string | null;
 }
 
 type DragMode =
   | { mode: 'move'; id: string; type: 'room' | 'furniture' | 'door' | 'window'; offsetX: number; offsetY: number }
+<<<<<<< HEAD
   | { mode: 'resize'; id: string; itemType: 'room' | 'furniture' | 'door' | 'window'; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number }
   | { mode: 'pan'; startX: number; startY: number; origPanX: number; origPanY: number };
 
@@ -34,6 +42,13 @@ export default function FloorPlanCanvas({
   rooms, furniture, doors, windows, selectedId, activeTool,
   onSelectItem, onMoveFurniture, onMoveRoom, onResizeRoom, onResizeFurniture, onResizeDoor, onMoveDoor,
   onMoveWindow, onResizeWindow, onDeleteItem,
+=======
+  | { mode: 'resize'; id: string; itemType: 'room' | 'furniture' | 'door' | 'window'; handle: string; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number };
+
+export default function FloorPlanCanvas({
+  rooms, furniture, doors, windows, selectedId, activeTool,
+  onSelectItem, onMoveFurniture, onMoveRoom, onResizeRoom, onResizeFurniture, onResizeDoor, onResizeWindow, onMoveDoor, onMoveWindow, onDeleteItem,
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   backgroundImage,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -59,6 +74,7 @@ export default function FloorPlanCanvas({
     return { cx: 0, cy: 0 };
   }, []);
 
+<<<<<<< HEAD
   const handleZoomIn = useCallback(() => setZoom(z => Math.min(z * 1.25, 4)), []);
   const handleZoomOut = useCallback(() => setZoom(z => Math.max(z / 1.25, 0.25)), []);
   const handleZoomReset = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
@@ -90,6 +106,8 @@ export default function FloorPlanCanvas({
     return () => svg.removeEventListener('wheel', onWheel);
   }, [zoom]);
 
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   const handleMouseDown = useCallback((e: React.MouseEvent, id: string, type: 'room' | 'furniture' | 'door' | 'window', itemX: number, itemY: number) => {
     e.stopPropagation();
     if (activeTool === 'delete') { onDeleteItem(id); return; }
@@ -173,7 +191,11 @@ export default function FloorPlanCanvas({
         onResizeDoor(drag.id, newW, newH);
       }
     }
+<<<<<<< HEAD
   }, [drag, getSVGPoint, getClientPoint, zoom, onMoveFurniture, onMoveRoom, onMoveDoor, onMoveWindow, onResizeRoom, onResizeFurniture, onResizeDoor, onResizeWindow]);
+=======
+  }, [drag, getSVGPoint, onMoveFurniture, onMoveRoom, onMoveDoor, onMoveWindow, onResizeRoom, onResizeFurniture, onResizeDoor, onResizeWindow]);
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 
   const handleEnd = useCallback(() => setDrag(null), []);
 
@@ -220,15 +242,25 @@ export default function FloorPlanCanvas({
       'tv-unit': 'hsl(220 40% 35%)', bookshelf: 'hsl(30 50% 40%)', 'bed-double': 'hsl(200 45% 40%)',
       'bed-single': 'hsl(200 40% 45%)', wardrobe: 'hsl(200 40% 38%)', nightstand: 'hsl(30 45% 42%)',
       dresser: 'hsl(200 35% 42%)', 'dining-table': 'hsl(30 55% 42%)', chair: 'hsl(30 50% 48%)',
+<<<<<<< HEAD
       'kitchen-counter': 'hsl(168 50% 38%)', stove: 'hsl(0 50% 40%)', fridge: 'hsl(199 60% 55%)',
       sink: 'hsl(199 50% 55%)', bathtub: 'hsl(199 55% 55%)', toilet: 'hsl(0 0% 70%)',
       basin: 'hsl(199 45% 55%)', desk: 'hsl(30 45% 40%)', 'office-chair': 'hsl(152 40% 40%)',
+=======
+      'kitchen-counter': 'hsl(199 50% 40%)', stove: 'hsl(0 50% 40%)', fridge: 'hsl(199 60% 65%)',
+      sink: 'hsl(199 50% 55%)', bathtub: 'hsl(199 55% 60%)', toilet: 'hsl(0 0% 75%)',
+      basin: 'hsl(199 45% 55%)', desk: 'hsl(30 45% 40%)', 'office-chair': 'hsl(245 40% 45%)',
+      'car-porch': 'hsl(0 0% 60%)', staircase: 'hsl(30 30% 50%)',
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
     };
     return colors[type] || 'hsl(152 40% 40%)';
   };
 
   const HANDLE_SIZE = 10;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   const renderHandles = (id: string, x: number, y: number, width: number, height: number, itemType: 'room' | 'furniture' | 'door' | 'window') => {
     if (selectedId !== id || activeTool !== 'select') return null;
     const hs = itemType === 'room' ? HANDLE_SIZE : 8;
@@ -333,6 +365,7 @@ export default function FloorPlanCanvas({
           </g>
         ))}
 
+<<<<<<< HEAD
         {/* Windows */}
         {windows.map(win => (
           <g key={win.id}>
@@ -355,9 +388,62 @@ export default function FloorPlanCanvas({
               >Win</text>
             </g>
             {renderHandles(win.id, win.x, win.y, win.width, win.height, 'window')}
+=======
+      {/* Windows */}
+      {windows.map(win => (
+        <g key={win.id}>
+          <g
+            onMouseDown={(e) => handleMouseDown(e, win.id, 'window', win.x, win.y)}
+            onTouchStart={(e) => handleTouchStart(e, win.id, 'window', win.x, win.y)}
+            style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
+            transform={`rotate(${win.rotation} ${win.x + win.width / 2} ${win.y + win.height / 2})`}
+          >
+            <rect x={win.x} y={win.y} width={win.width} height={win.height}
+              fill="hsl(199 80% 65%)" stroke={selectedId === win.id ? 'hsl(245 58% 51%)' : 'hsl(199 60% 40%)'}
+              strokeWidth={selectedId === win.id ? 2.5 : 1} rx="1" opacity={0.8}
+            />
+            {/* Window panes */}
+            <line x1={win.x + win.width / 2} y1={win.y} x2={win.x + win.width / 2} y2={win.y + win.height}
+              stroke="hsl(199 60% 40%)" strokeWidth="1" pointerEvents="none" />
+            <line x1={win.x} y1={win.y + win.height / 2} x2={win.x + win.width} y2={win.y + win.height / 2}
+              stroke="hsl(199 60% 40%)" strokeWidth="0.5" pointerEvents="none" />
+            <text x={win.x + win.width / 2} y={win.y + win.height / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="6" fill="hsl(199 60% 20%)" fontWeight="500" pointerEvents="none"
+            >Win</text>
+          </g>
+          {renderHandles(win.id, win.x, win.y, win.width, win.height, 'window')}
+        </g>
+      ))}
+
+      {/* Furniture */}
+      {furniture.map(item => (
+        <g key={item.id}>
+          <g
+            onMouseDown={(e) => handleMouseDown(e, item.id, 'furniture', item.x, item.y)}
+            onTouchStart={(e) => handleTouchStart(e, item.id, 'furniture', item.x, item.y)}
+            style={{ cursor: activeTool === 'select' ? 'move' : activeTool === 'delete' ? 'pointer' : 'default' }}
+            transform={`rotate(${item.rotation} ${item.x + item.width / 2} ${item.y + item.height / 2})`}
+          >
+            <rect x={item.x} y={item.y} width={item.width} height={item.height}
+              fill={getFurnitureColor(item.type)}
+              stroke={selectedId === item.id ? 'hsl(245 58% 60%)' : 'hsl(222 30% 20%)'}
+              strokeWidth={selectedId === item.id ? 2.5 : 1} rx="3" opacity={0.85}
+            />
+            <text x={item.x + item.width / 2} y={item.y + item.height / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize={Math.min(item.width, item.height) < 30 ? '7' : '9'}
+              fill="hsl(0 0% 95%)" fontWeight="500" pointerEvents="none"
+            >{item.label}</text>
+            <text x={item.x + item.width / 2} y={item.y + item.height / 2 + 12}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="6" fill="hsl(0 0% 70%)" pointerEvents="none"
+            >{(item.width / 50 * 1.5).toFixed(1)}×{(item.height / 50 * 1.5).toFixed(1)}m</text>
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
           </g>
         ))}
 
+<<<<<<< HEAD
         {/* Furniture */}
         {furniture.map(item => (
           <g key={item.id}>
@@ -421,5 +507,13 @@ export default function FloorPlanCanvas({
         </div>
       </div>
     </div>
+=======
+      {rooms.length === 0 && furniture.length === 0 && doors.length === 0 && windows.length === 0 && (
+        <text x="500" y="350" textAnchor="middle" dominantBaseline="central"
+          fontSize="16" fill="hsl(0 0% 65%)" fontFamily="Space Grotesk, sans-serif"
+        >Add rooms from the panel to get started</text>
+      )}
+    </svg>
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   );
 }

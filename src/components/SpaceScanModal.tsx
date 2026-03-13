@@ -1,6 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+<<<<<<< HEAD
 import { Camera, X, Loader2, CheckCircle, ScanLine, Ruler, RefreshCw, Check } from 'lucide-react';
+=======
+import { Camera, X, CheckCircle, ScanLine, AlertTriangle, RefreshCw } from 'lucide-react';
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 import { Button } from '@/components/ui/button';
 import type { DetectedRoom } from '@/types/editor';
 
@@ -10,6 +14,7 @@ interface Props {
   onScanComplete: (rooms: DetectedRoom[]) => void;
 }
 
+<<<<<<< HEAD
 interface DetectedDimension {
   label: string;
   value: string;
@@ -22,6 +27,12 @@ interface DetectedRoomEntry {
   heightM: number;
   confidence: number;
   selected: boolean;
+=======
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onScanComplete: (imageUrl: string) => void;
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 }
 
 const ROOM_COLORS = [
@@ -37,12 +48,13 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanned, setScanned] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+<<<<<<< HEAD
   const [dimensions, setDimensions] = useState<DetectedDimension[]>([]);
   const [detectedRooms, setDetectedRooms] = useState<DetectedRoomEntry[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 
   const startCamera = useCallback(async () => {
     try {
@@ -92,6 +104,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
     }
   };
 
+<<<<<<< HEAD
   const analyzeScan = () => {
     setScanning(true);
     setScanProgress(0);
@@ -143,24 +156,37 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
     }));
     onScanComplete(rooms);
     handleClose();
+=======
+  const applyAsBackground = () => {
+    if (capturedImage) {
+      onScanComplete(capturedImage);
+      handleClose();
+    }
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
   };
 
   const retake = () => {
     setCapturedImage(null);
+<<<<<<< HEAD
     setScanned(false);
     setDimensions([]);
     setDetectedRooms([]);
     setScanProgress(0);
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
     startCamera();
   };
 
   const handleClose = () => {
     stopCamera();
     setCapturedImage(null);
+<<<<<<< HEAD
     setScanned(false);
     setDimensions([]);
     setDetectedRooms([]);
     setScanProgress(0);
+=======
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
     setCameraError(null);
     onClose();
   };
@@ -190,7 +216,11 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                 <ScanLine className="w-5 h-5 text-secondary" />
                 Space Scanner
               </h2>
+<<<<<<< HEAD
               <p className="text-sm text-muted-foreground">Capture your room — AI detects rooms and adds them to canvas</p>
+=======
+              <p className="text-sm text-muted-foreground">Capture your room to use as a background reference</p>
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
             </div>
             <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="w-4 h-4" />
@@ -226,12 +256,13 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-accent rounded-br" />
                       </div>
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-accent/70 bg-foreground/60 px-3 py-1 rounded-full">
-                        Point camera at room corner for best results
+                        Point camera at your room
                       </div>
                     </>
                   )}
                 </>
               ) : (
+<<<<<<< HEAD
                 <>
                   <img src={capturedImage} alt="Captured room" className="w-full h-full object-cover" />
                   
@@ -279,20 +310,22 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                     </div>
                   )}
                 </>
+=======
+                <img src={capturedImage} alt="Captured room" className="w-full h-full object-cover" />
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
               )}
             </div>
 
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Progress bar */}
-            {scanning && (
-              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                <motion.div
-                  className="h-full gradient-accent rounded-full"
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${scanProgress}%` }}
-                />
+            {/* Info notice */}
+            <div className="p-3 rounded-xl bg-muted/50 border flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Reference Image Only</p>
+                <p>This photo will be used as a background overlay on the canvas so you can trace your room layout manually. For accurate measurements, use a measuring tape and enter dimensions in the properties panel.</p>
               </div>
+<<<<<<< HEAD
             )}
 
             {/* Detected dimensions (informational) */}
@@ -331,6 +364,9 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                 </div>
               </motion.div>
             )}
+=======
+            </div>
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 
             {/* Detected rooms — selectable */}
             {scanned && detectedRooms.length > 0 && (
@@ -391,11 +427,12 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                 >
                   <Camera className="w-4 h-4" /> Capture Room
                 </Button>
-              ) : !scanned ? (
+              ) : (
                 <>
                   <Button variant="outline" onClick={retake} className="flex-1">
                     Retake Photo
                   </Button>
+<<<<<<< HEAD
                   <Button variant="hero" onClick={analyzeScan} disabled={scanning} className="flex-1 gap-2">
                     {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
                     {scanning ? 'Scanning...' : 'Detect Rooms'}
@@ -414,6 +451,10 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                   >
                     <CheckCircle className="w-4 h-4" />
                     Add {detectedRooms.filter(r => r.selected).length} Room{detectedRooms.filter(r => r.selected).length !== 1 ? 's' : ''} to Canvas
+=======
+                  <Button variant="hero" onClick={applyAsBackground} className="flex-1 gap-2">
+                    <CheckCircle className="w-4 h-4" /> Use as Background
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
                   </Button>
                 </>
               )}

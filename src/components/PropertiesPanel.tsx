@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Ruler, RotateCw, Trash2, Move } from 'lucide-react';
+import { Ruler, RotateCw, Trash2, Move, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Room, FurnitureItem, DoorItem, WindowItem } from '@/types/editor';
 
@@ -15,6 +15,7 @@ interface Props {
   onResizeWindow: (id: string, width: number, height: number) => void;
   onRotateSelected: () => void;
   onDeleteSelected: () => void;
+  onRenameRoom?: (id: string, name: string) => void;
 }
 
 function toMeters(px: number) { return (px / 50 * 1.5).toFixed(2); }
@@ -23,7 +24,11 @@ function fromMeters(m: string) { return Math.round((parseFloat(m) / 1.5) * 50); 
 export default function PropertiesPanel({
   selectedId, rooms, furniture, doors, windows,
   onResizeRoom, onResizeFurniture, onResizeDoor, onResizeWindow,
+<<<<<<< HEAD
   onRotateSelected, onDeleteSelected,
+=======
+  onRotateSelected, onDeleteSelected, onRenameRoom,
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 }: Props) {
   const room = rooms.find(r => r.id === selectedId);
   const furn = furniture.find(f => f.id === selectedId);
@@ -33,11 +38,17 @@ export default function PropertiesPanel({
 
   const [widthM, setWidthM] = useState('');
   const [heightM, setHeightM] = useState('');
+  const [editName, setEditName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
 
   useEffect(() => {
     if (item) {
       setWidthM(toMeters(item.width));
       setHeightM(toMeters(item.height));
+    }
+    if (room) {
+      setNameValue(room.name);
+      setEditName(false);
     }
   }, [item?.id, item?.width, item?.height]);
 
@@ -52,9 +63,16 @@ export default function PropertiesPanel({
     );
   }
 
+<<<<<<< HEAD
   const itemType = room ? 'Room' : furn ? 'Furniture' : win ? 'Window' : 'Door';
   const itemName = room ? room.name : furn ? furn.label : win ? 'Window' : 'Door';
   const rotation = furn ? furn.rotation : door ? door.rotation : win ? win.rotation : 0;
+=======
+  const itemType = room ? 'Room' : furn ? 'Furniture' : door ? 'Door' : 'Window';
+  const itemName = room ? room.name : furn ? furn.label : door ? 'Door' : 'Window';
+  const rotation = furn ? furn.rotation : door ? door.rotation : win ? win.rotation : 0;
+  const canRotate = !!furn || !!door || !!win;
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
 
   const applySize = () => {
     const w = fromMeters(widthM);
@@ -70,6 +88,13 @@ export default function PropertiesPanel({
     if (e.key === 'Enter') applySize();
   };
 
+  const applyRename = () => {
+    if (room && onRenameRoom && nameValue.trim()) {
+      onRenameRoom(selectedId, nameValue.trim());
+    }
+    setEditName(false);
+  };
+
   const area = (parseFloat(widthM) * parseFloat(heightM)).toFixed(2);
 
   return (
@@ -77,12 +102,31 @@ export default function PropertiesPanel({
       {/* Header */}
       <div className="px-4 py-3 border-b bg-muted/30">
         <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-display font-bold">{itemName}</div>
+          <div className="flex-1 min-w-0">
+            {room && editName ? (
+              <input
+                type="text"
+                value={nameValue}
+                onChange={e => setNameValue(e.target.value)}
+                onBlur={applyRename}
+                onKeyDown={e => e.key === 'Enter' && applyRename()}
+                autoFocus
+                className="text-sm font-display font-bold bg-background px-2 py-1 rounded border outline-none focus:ring-2 focus:ring-ring w-full"
+              />
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <div className="text-sm font-display font-bold truncate">{itemName}</div>
+                {room && onRenameRoom && (
+                  <button onClick={() => setEditName(true)} className="text-muted-foreground hover:text-foreground p-0.5">
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            )}
             <div className="text-xs text-muted-foreground">{itemType}</div>
           </div>
           {room && (
-            <div className="w-6 h-6 rounded-md border" style={{ background: room.color }} />
+            <div className="w-6 h-6 rounded-md border flex-shrink-0" style={{ background: room.color }} />
           )}
         </div>
       </div>
@@ -128,7 +172,11 @@ export default function PropertiesPanel({
           <span className="font-mono font-medium">{area} m²</span>
         </div>
 
+<<<<<<< HEAD
         {(furn || door || win) && (
+=======
+        {canRotate && (
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
           <div className="flex items-center justify-between text-xs px-1">
             <span className="text-muted-foreground">Rotation</span>
             <span className="font-mono font-medium">{rotation}°</span>
@@ -136,7 +184,11 @@ export default function PropertiesPanel({
         )}
 
         <div className="flex gap-2 pt-1">
+<<<<<<< HEAD
           {(furn || door || win) && (
+=======
+          {canRotate && (
+>>>>>>> 6f7ffd091e4cfe4f9dc074660b4240af3bd884d3
             <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={onRotateSelected}>
               <RotateCw className="w-3 h-3" /> Rotate
             </Button>
