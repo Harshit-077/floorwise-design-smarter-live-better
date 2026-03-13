@@ -11,6 +11,7 @@ interface Props {
   rooms: Room[];
   furniture: FurnitureItem[];
   doors: DoorItem[];
+  windows: WindowItem[];
   onLoadProject: (data: ProjectData) => void;
 }
 
