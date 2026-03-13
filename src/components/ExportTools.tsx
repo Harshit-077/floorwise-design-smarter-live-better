@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Download, Save, FolderOpen, FileImage, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Room, FurnitureItem, DoorItem, ProjectData } from '@/types/editor';
+import type { Room, FurnitureItem, DoorItem, WindowItem, ProjectData } from '@/types/editor';
 import { toast } from 'sonner';
 
 interface Props {
