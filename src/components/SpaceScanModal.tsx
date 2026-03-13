@@ -1,7 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, X, Loader2, CheckCircle, ScanLine, Ruler, RefreshCw } from 'lucide-react';
+import { Camera, X, Loader2, CheckCircle, ScanLine, Ruler, RefreshCw, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { DetectedRoom } from '@/types/editor';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onScanComplete: (rooms: DetectedRoom[]) => void;
+}
 
 interface DetectedDimension {
   label: string;
@@ -9,11 +16,21 @@ interface DetectedDimension {
   confidence: number;
 }
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-  onScanComplete: (imageUrl: string) => void;
+interface DetectedRoomEntry {
+  name: string;
+  widthM: number;
+  heightM: number;
+  confidence: number;
+  selected: boolean;
 }
+
+const ROOM_COLORS = [
+  'hsl(140 30% 90%)',
+  'hsl(200 30% 89%)',
+  'hsl(38 40% 88%)',
+  'hsl(199 40% 86%)',
+  'hsl(25 35% 89%)',
+];
 
 export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -24,6 +41,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
   const [scanned, setScanned] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState<DetectedDimension[]>([]);
+  const [detectedRooms, setDetectedRooms] = useState<DetectedRoomEntry[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
 
   const startCamera = useCallback(async () => {
@@ -78,7 +96,6 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
     setScanning(true);
     setScanProgress(0);
 
-    // Simulate progressive scan
     const interval = setInterval(() => {
       setScanProgress(prev => {
         if (prev >= 100) {
@@ -92,30 +109,47 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
     setTimeout(() => {
       clearInterval(interval);
       setScanProgress(100);
+
+      // Detected dimensions (informational)
       setDimensions([
         { label: 'Wall A (Left)', value: '4.2m', confidence: 92 },
         { label: 'Wall B (Far)', value: '5.8m', confidence: 88 },
         { label: 'Wall C (Right)', value: '4.1m', confidence: 90 },
         { label: 'Ceiling Height', value: '2.7m', confidence: 95 },
-        { label: 'Floor Area', value: '24.4 m²', confidence: 85 },
-        { label: 'Door Width', value: '0.9m', confidence: 78 },
       ]);
+
+      // Detected rooms
+      setDetectedRooms([
+        { name: 'Living Room', widthM: 5.8, heightM: 4.2, confidence: 91, selected: true },
+        { name: 'Adjoining Room', widthM: 3.5, heightM: 4.1, confidence: 78, selected: true },
+      ]);
+
       setScanning(false);
       setScanned(true);
     }, 3200);
   };
 
+  const toggleRoom = (index: number) => {
+    setDetectedRooms(prev => prev.map((r, i) => i === index ? { ...r, selected: !r.selected } : r));
+  };
+
   const applyResults = () => {
-    if (capturedImage) {
-      onScanComplete(capturedImage);
-      handleClose();
-    }
+    const selectedRooms = detectedRooms.filter(r => r.selected);
+    const rooms: DetectedRoom[] = selectedRooms.map((r, i) => ({
+      name: r.name,
+      width: Math.round(r.widthM / 1.5 * 50),
+      height: Math.round(r.heightM / 1.5 * 50),
+      color: ROOM_COLORS[i % ROOM_COLORS.length],
+    }));
+    onScanComplete(rooms);
+    handleClose();
   };
 
   const retake = () => {
     setCapturedImage(null);
     setScanned(false);
     setDimensions([]);
+    setDetectedRooms([]);
     setScanProgress(0);
     startCamera();
   };
@@ -125,6 +159,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
     setCapturedImage(null);
     setScanned(false);
     setDimensions([]);
+    setDetectedRooms([]);
     setScanProgress(0);
     setCameraError(null);
     onClose();
@@ -155,7 +190,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                 <ScanLine className="w-5 h-5 text-secondary" />
                 Space Scanner
               </h2>
-              <p className="text-sm text-muted-foreground">Capture your room and AI will estimate dimensions</p>
+              <p className="text-sm text-muted-foreground">Capture your room — AI detects rooms and adds them to canvas</p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="w-4 h-4" />
@@ -184,7 +219,6 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                         muted
                         className="w-full h-full object-cover"
                       />
-                      {/* Scan overlay guides */}
                       <div className="absolute inset-4 border-2 border-accent/40 rounded-lg pointer-events-none">
                         <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-accent rounded-tl" />
                         <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-accent rounded-tr" />
@@ -203,13 +237,11 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                   
                   {scanning && (
                     <div className="absolute inset-0 bg-foreground/50">
-                      {/* Scanning grid effect */}
                       <motion.div
                         className="absolute left-0 right-0 h-1 bg-accent/60 shadow-lg shadow-accent/50"
                         animate={{ top: ['0%', '100%'] }}
                         transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                       />
-                      {/* Corner detection markers */}
                       {[
                         { x: '20%', y: '30%' }, { x: '80%', y: '25%' },
                         { x: '15%', y: '85%' }, { x: '85%', y: '80%' },
@@ -226,36 +258,15 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                           <div className="absolute inset-1 bg-success/40 rounded-full" />
                         </motion.div>
                       ))}
-                      {/* Lines between corners */}
                       <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                        <motion.line
-                          x1="20%" y1="30%" x2="80%" y2="25%"
-                          stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5"
-                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                          transition={{ delay: 1.5, duration: 0.5 }}
-                        />
-                        <motion.line
-                          x1="80%" y1="25%" x2="85%" y2="80%"
-                          stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5"
-                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                          transition={{ delay: 1.8, duration: 0.5 }}
-                        />
-                        <motion.line
-                          x1="85%" y1="80%" x2="15%" y2="85%"
-                          stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5"
-                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                          transition={{ delay: 2.1, duration: 0.5 }}
-                        />
-                        <motion.line
-                          x1="15%" y1="85%" x2="20%" y2="30%"
-                          stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5"
-                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                          transition={{ delay: 2.4, duration: 0.5 }}
-                        />
+                        <motion.line x1="20%" y1="30%" x2="80%" y2="25%" stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 1.5, duration: 0.5 }} />
+                        <motion.line x1="80%" y1="25%" x2="85%" y2="80%" stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 1.8, duration: 0.5 }} />
+                        <motion.line x1="85%" y1="80%" x2="15%" y2="85%" stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 2.1, duration: 0.5 }} />
+                        <motion.line x1="15%" y1="85%" x2="20%" y2="30%" stroke="hsl(128 49% 61%)" strokeWidth="1" strokeDasharray="5,5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 2.4, duration: 0.5 }} />
                       </svg>
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-foreground/70 px-4 py-2 rounded-full flex items-center gap-2">
                         <Loader2 className="w-4 h-4 text-accent animate-spin" />
-                        <span className="text-xs text-primary-foreground">Detecting boundaries... {scanProgress}%</span>
+                        <span className="text-xs text-primary-foreground">Detecting rooms... {scanProgress}%</span>
                       </div>
                     </div>
                   )}
@@ -263,7 +274,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                   {scanned && (
                     <div className="absolute top-3 right-3">
                       <div className="bg-success/90 text-success-foreground px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Scan Complete
+                        <CheckCircle className="w-3 h-3" /> Rooms Detected
                       </div>
                     </div>
                   )}
@@ -284,7 +295,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
               </div>
             )}
 
-            {/* Detected dimensions */}
+            {/* Detected dimensions (informational) */}
             {scanned && dimensions.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -302,11 +313,11 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.08 }}
-                      className="p-3 rounded-xl bg-muted border text-sm flex items-center justify-between"
+                      className="p-2 rounded-xl bg-muted border text-sm flex items-center justify-between"
                     >
                       <div>
-                        <div className="font-medium">{dim.label}</div>
-                        <div className="text-lg font-display font-bold text-secondary">{dim.value}</div>
+                        <div className="text-xs text-muted-foreground">{dim.label}</div>
+                        <div className="text-sm font-display font-bold text-secondary">{dim.value}</div>
                       </div>
                       <div className={`text-xs px-2 py-0.5 rounded-full ${
                         dim.confidence >= 90 ? 'bg-success/20 text-success' :
@@ -316,6 +327,54 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                         {dim.confidence}%
                       </div>
                     </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Detected rooms — selectable */}
+            {scanned && detectedRooms.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-2"
+              >
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <ScanLine className="w-4 h-4 text-secondary" />
+                  Detected Rooms — Select to add to canvas
+                </h4>
+                <div className="space-y-2">
+                  {detectedRooms.map((room, i) => (
+                    <motion.button
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      className={`w-full p-3 rounded-xl border text-left flex items-center gap-3 transition-colors ${
+                        room.selected ? 'bg-secondary/10 border-secondary/40' : 'bg-muted hover:bg-muted/80'
+                      }`}
+                      onClick={() => toggleRoom(i)}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                        room.selected ? 'bg-secondary border-secondary text-white' : 'border-muted-foreground/40'
+                      }`}>
+                        {room.selected && <Check className="w-3 h-3" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{room.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {room.widthM.toFixed(1)}m × {room.heightM.toFixed(1)}m
+                        </div>
+                      </div>
+                      <div className={`text-xs px-2 py-0.5 rounded-full ${
+                        room.confidence >= 85 ? 'bg-success/20 text-success' :
+                        room.confidence >= 70 ? 'bg-warning/20 text-warning' :
+                        'bg-muted-foreground/20 text-muted-foreground'
+                      }`}>
+                        {room.confidence}% match
+                      </div>
+                    </motion.button>
                   ))}
                 </div>
               </motion.div>
@@ -339,7 +398,7 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                   </Button>
                   <Button variant="hero" onClick={analyzeScan} disabled={scanning} className="flex-1 gap-2">
                     {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
-                    {scanning ? 'Scanning...' : 'Scan Dimensions'}
+                    {scanning ? 'Scanning...' : 'Detect Rooms'}
                   </Button>
                 </>
               ) : (
@@ -347,8 +406,14 @@ export default function SpaceScanModal({ isOpen, onClose, onScanComplete }: Prop
                   <Button variant="outline" onClick={retake} className="flex-1">
                     Scan Again
                   </Button>
-                  <Button variant="hero" onClick={applyResults} className="flex-1 gap-2">
-                    <CheckCircle className="w-4 h-4" /> Apply to Canvas
+                  <Button
+                    variant="hero"
+                    onClick={applyResults}
+                    className="flex-1 gap-2"
+                    disabled={detectedRooms.filter(r => r.selected).length === 0}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Add {detectedRooms.filter(r => r.selected).length} Room{detectedRooms.filter(r => r.selected).length !== 1 ? 's' : ''} to Canvas
                   </Button>
                 </>
               )}

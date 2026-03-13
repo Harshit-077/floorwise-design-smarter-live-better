@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Ruler, RotateCw, Trash2, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Room, FurnitureItem, DoorItem } from '@/types/editor';
+import type { Room, FurnitureItem, DoorItem, WindowItem } from '@/types/editor';
 
 interface Props {
   selectedId: string | null;
   rooms: Room[];
   furniture: FurnitureItem[];
   doors: DoorItem[];
+  windows: WindowItem[];
   onResizeRoom: (id: string, width: number, height: number) => void;
   onResizeFurniture: (id: string, width: number, height: number) => void;
   onResizeDoor: (id: string, width: number, height: number) => void;
+  onResizeWindow: (id: string, width: number, height: number) => void;
   onRotateSelected: () => void;
   onDeleteSelected: () => void;
 }
@@ -19,14 +21,15 @@ function toMeters(px: number) { return (px / 50 * 1.5).toFixed(2); }
 function fromMeters(m: string) { return Math.round((parseFloat(m) / 1.5) * 50); }
 
 export default function PropertiesPanel({
-  selectedId, rooms, furniture, doors,
-  onResizeRoom, onResizeFurniture, onResizeDoor,
+  selectedId, rooms, furniture, doors, windows,
+  onResizeRoom, onResizeFurniture, onResizeDoor, onResizeWindow,
   onRotateSelected, onDeleteSelected,
 }: Props) {
   const room = rooms.find(r => r.id === selectedId);
   const furn = furniture.find(f => f.id === selectedId);
   const door = doors.find(d => d.id === selectedId);
-  const item = room || furn || door;
+  const win = windows.find(w => w.id === selectedId);
+  const item = room || furn || door || win;
 
   const [widthM, setWidthM] = useState('');
   const [heightM, setHeightM] = useState('');
@@ -49,9 +52,9 @@ export default function PropertiesPanel({
     );
   }
 
-  const itemType = room ? 'Room' : furn ? 'Furniture' : 'Door';
-  const itemName = room ? room.name : furn ? furn.label : 'Door';
-  const rotation = furn ? furn.rotation : door ? door.rotation : 0;
+  const itemType = room ? 'Room' : furn ? 'Furniture' : win ? 'Window' : 'Door';
+  const itemName = room ? room.name : furn ? furn.label : win ? 'Window' : 'Door';
+  const rotation = furn ? furn.rotation : door ? door.rotation : win ? win.rotation : 0;
 
   const applySize = () => {
     const w = fromMeters(widthM);
@@ -60,6 +63,7 @@ export default function PropertiesPanel({
     if (room) onResizeRoom(selectedId, w, h);
     else if (furn) onResizeFurniture(selectedId, w, h);
     else if (door) onResizeDoor(selectedId, w, h);
+    else if (win) onResizeWindow(selectedId, w, h);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -124,7 +128,7 @@ export default function PropertiesPanel({
           <span className="font-mono font-medium">{area} m²</span>
         </div>
 
-        {(furn || door) && (
+        {(furn || door || win) && (
           <div className="flex items-center justify-between text-xs px-1">
             <span className="text-muted-foreground">Rotation</span>
             <span className="font-mono font-medium">{rotation}°</span>
@@ -132,7 +136,7 @@ export default function PropertiesPanel({
         )}
 
         <div className="flex gap-2 pt-1">
-          {(furn || door) && (
+          {(furn || door || win) && (
             <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={onRotateSelected}>
               <RotateCw className="w-3 h-3" /> Rotate
             </Button>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, FolderOpen, PenTool } from 'lucide-react';
+import { Home, FolderOpen, PenTool, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
@@ -16,7 +16,7 @@ export default function Navbar() {
       <div className="container flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-md">
-            <PenTool className="w-4 h-4 text-primary-foreground" />
+            <Leaf className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
             <span className="font-display text-xl font-bold text-foreground">FloorWise</span>

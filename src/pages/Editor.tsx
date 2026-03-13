@@ -10,7 +10,7 @@ import ImageUploadModal from '@/components/ImageUploadModal';
 import SpaceScanModal from '@/components/SpaceScanModal';
 import ExportTools from '@/components/ExportTools';
 import AIChatWidget from '@/components/AIChatWidget';
-import type { Room, FurnitureItem, DoorItem, EditorTool, ProjectData } from '@/types/editor';
+import type { Room, FurnitureItem, DoorItem, WindowItem, EditorTool, ProjectData, DetectedRoom, PresetLayout } from '@/types/editor';
 
 const ThreeDView = lazy(() => import('@/components/ThreeDView'));
 
@@ -25,6 +25,7 @@ export default function EditorPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [furniture, setFurniture] = useState<FurnitureItem[]>([]);
   const [doors, setDoors] = useState<DoorItem[]>([]);
+  const [windows, setWindows] = useState<WindowItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<EditorTool>('select');
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -34,11 +35,11 @@ export default function EditorPage() {
   const [showExport, setShowExport] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [history, setHistory] = useState<{ rooms: Room[]; furniture: FurnitureItem[]; doors: DoorItem[] }[]>([]);
+  const [history, setHistory] = useState<{ rooms: Room[]; furniture: FurnitureItem[]; doors: DoorItem[]; windows: WindowItem[] }[]>([]);
 
   const saveHistory = useCallback(() => {
-    setHistory(prev => [...prev.slice(-19), { rooms: [...rooms], furniture: [...furniture], doors: [...doors] }]);
-  }, [rooms, furniture, doors]);
+    setHistory(prev => [...prev.slice(-19), { rooms: [...rooms], furniture: [...furniture], doors: [...doors], windows: [...windows] }]);
+  }, [rooms, furniture, doors, windows]);
 
   const undo = useCallback(() => {
     if (history.length === 0) return;
@@ -46,6 +47,7 @@ export default function EditorPage() {
     setRooms(prev.rooms);
     setFurniture(prev.furniture);
     setDoors(prev.doors);
+    setWindows(prev.windows);
     setHistory(h => h.slice(0, -1));
     setSelectedId(null);
   }, [history]);
@@ -60,9 +62,9 @@ export default function EditorPage() {
     setActiveTool('select');
   }, [rooms.length, saveHistory]);
 
-  const addFurniture = useCallback((type: string, label: string, width: number, height: number) => {
+  const addFurniture = useCallback((type: string, label: string, width: number, height: number, variant?: string) => {
     saveHistory();
-    const item: FurnitureItem = { id: `furn-${Date.now()}`, type, label, x: 400 + Math.random() * 100, y: 250 + Math.random() * 100, width, height, rotation: 0 };
+    const item: FurnitureItem = { id: `furn-${Date.now()}`, type, label, variant, x: 400 + Math.random() * 100, y: 250 + Math.random() * 100, width, height, rotation: 0 };
     setFurniture(prev => [...prev, item]);
     setSelectedId(item.id);
     setActiveTool('select');
@@ -73,6 +75,14 @@ export default function EditorPage() {
     const door: DoorItem = { id: `door-${Date.now()}`, x: 300 + Math.random() * 100, y: 200 + Math.random() * 100, width, height, rotation: 0, wallSide: 'bottom' };
     setDoors(prev => [...prev, door]);
     setSelectedId(door.id);
+    setActiveTool('select');
+  }, [saveHistory]);
+
+  const addWindow = useCallback((label: string, width: number, height: number) => {
+    saveHistory();
+    const win: WindowItem = { id: `win-${Date.now()}`, x: 350 + Math.random() * 100, y: 150 + Math.random() * 100, width, height, rotation: 0 };
+    setWindows(prev => [...prev, win]);
+    setSelectedId(win.id);
     setActiveTool('select');
   }, [saveHistory]);
 
@@ -99,8 +109,17 @@ export default function EditorPage() {
     setDoors(prev => prev.map(d => d.id === id ? { ...d, width, height } : d));
   }, [saveHistory]);
 
+  const resizeWindow = useCallback((id: string, width: number, height: number) => {
+    saveHistory();
+    setWindows(prev => prev.map(w => w.id === id ? { ...w, width, height } : w));
+  }, [saveHistory]);
+
   const moveDoor = useCallback((id: string, x: number, y: number) => {
     setDoors(prev => prev.map(d => d.id === id ? { ...d, x, y } : d));
+  }, []);
+
+  const moveWindow = useCallback((id: string, x: number, y: number) => {
+    setWindows(prev => prev.map(w => w.id === id ? { ...w, x, y } : w));
   }, []);
 
   const deleteItem = useCallback((id: string) => {
@@ -108,6 +127,7 @@ export default function EditorPage() {
     setRooms(prev => prev.filter(r => r.id !== id));
     setFurniture(prev => prev.filter(f => f.id !== id));
     setDoors(prev => prev.filter(d => d.id !== id));
+    setWindows(prev => prev.filter(w => w.id !== id));
     setSelectedId(null);
   }, [saveHistory]);
 
@@ -116,6 +136,7 @@ export default function EditorPage() {
     saveHistory();
     setFurniture(prev => prev.map(f => f.id === selectedId ? { ...f, rotation: (f.rotation + 90) % 360 } : f));
     setDoors(prev => prev.map(d => d.id === selectedId ? { ...d, rotation: (d.rotation + 90) % 360 } : d));
+    setWindows(prev => prev.map(w => w.id === selectedId ? { ...w, rotation: (w.rotation + 90) % 360 } : w));
   }, [selectedId, saveHistory]);
 
   const deleteSelected = useCallback(() => {
@@ -128,7 +149,62 @@ export default function EditorPage() {
     setRooms(data.rooms);
     setFurniture(data.furniture);
     setDoors(data.doors);
+    setWindows(data.windows || []);
     setSelectedId(null);
+  }, [saveHistory]);
+
+  const handleScanComplete = useCallback((detectedRooms: DetectedRoom[]) => {
+    saveHistory();
+    detectedRooms.forEach((dr, i) => {
+      const offsetX = (i % 3) * 30;
+      const offsetY = Math.floor(i / 3) * 30;
+      const newRoom: Room = {
+        id: `room-${Date.now()}-${i}`,
+        x: 50 + offsetX + i * 10,
+        y: 50 + offsetY + i * 10,
+        width: dr.width,
+        height: dr.height,
+        name: dr.name,
+        color: dr.color,
+      };
+      setRooms(prev => [...prev, newRoom]);
+    });
+    setActiveTool('select');
+  }, [saveHistory]);
+
+  const handleLoadPreset = useCallback((preset: PresetLayout) => {
+    saveHistory();
+    // Clear existing items
+    setRooms([]);
+    setFurniture([]);
+    setDoors([]);
+    setWindows([]);
+    setSelectedId(null);
+
+    // Add rooms from preset
+    const newRooms = preset.rooms.map((r, i) => ({
+      id: `room-${Date.now()}-${i}`,
+      ...r,
+    }));
+    setRooms(newRooms);
+
+    // Add doors from preset
+    const newDoors = preset.doors.map((d, i) => ({
+      id: `door-${Date.now()}-${i}`,
+      ...d,
+      wallSide: 'bottom' as const,
+    }));
+    setDoors(newDoors);
+
+    // Add furniture from preset
+    const newFurniture = preset.furniture.map((f, i) => ({
+      id: `furn-${Date.now()}-${i}`,
+      ...f,
+      rotation: 0,
+    }));
+    setFurniture(newFurniture);
+
+    setActiveTool('select');
   }, [saveHistory]);
 
   return (
@@ -178,7 +254,7 @@ export default function EditorPage() {
         <div className="flex-1" />
 
         <div className="text-xs text-muted-foreground mr-1 md:mr-2 hidden sm:block">
-          {rooms.length}R · {doors.length}D · {furniture.length}F
+          {rooms.length}R · {doors.length}D · {windows.length}W · {furniture.length}F
         </div>
 
         <Button variant={showAnalysis ? 'default' : 'hero'} size="sm" className="gap-1 text-xs md:text-sm"
@@ -193,17 +269,19 @@ export default function EditorPage() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowPanel(false); }}>
           <div className="w-72 md:w-64 h-full flex flex-col gap-2 overflow-y-auto p-2 bg-card md:bg-transparent shadow-xl md:shadow-none">
             <FurniturePanel
-              onAddFurniture={(type, label, w, h) => { addFurniture(type, label, w, h); setShowPanel(false); }}
+              onAddFurniture={(type, label, w, h, variant) => { addFurniture(type, label, w, h, variant); setShowPanel(false); }}
               onAddRoom={(name, w, h, c) => { addRoom(name, w, h, c); setShowPanel(false); }}
               onAddDoor={(label, w, h) => { addDoor(label, w, h); setShowPanel(false); }}
+              onAddWindow={(label, w, h) => { addWindow(label, w, h); setShowPanel(false); }}
+              onLoadPreset={(preset) => { handleLoadPreset(preset); setShowPanel(false); }}
               onRotateSelected={rotateSelected}
               onDeleteSelected={deleteSelected}
               hasSelection={!!selectedId}
             />
             <PropertiesPanel
               selectedId={selectedId}
-              rooms={rooms} furniture={furniture} doors={doors}
-              onResizeRoom={resizeRoom} onResizeFurniture={resizeFurniture} onResizeDoor={resizeDoor}
+              rooms={rooms} furniture={furniture} doors={doors} windows={windows}
+              onResizeRoom={resizeRoom} onResizeFurniture={resizeFurniture} onResizeDoor={resizeDoor} onResizeWindow={resizeWindow}
               onRotateSelected={rotateSelected} onDeleteSelected={deleteSelected}
             />
           </div>
@@ -216,12 +294,14 @@ export default function EditorPage() {
             </Suspense>
           ) : (
             <FloorPlanCanvas
-              rooms={rooms} furniture={furniture} doors={doors}
+              rooms={rooms} furniture={furniture} doors={doors} windows={windows}
               selectedId={selectedId} activeTool={activeTool}
               onSelectItem={setSelectedId}
               onMoveFurniture={moveFurniture} onMoveRoom={moveRoom}
               onResizeRoom={resizeRoom} onResizeFurniture={resizeFurniture} onResizeDoor={resizeDoor}
-              onMoveDoor={moveDoor} onDeleteItem={deleteItem}
+              onMoveDoor={moveDoor}
+              onMoveWindow={moveWindow} onResizeWindow={resizeWindow}
+              onDeleteItem={deleteItem}
               backgroundImage={backgroundImage}
             />
           )}
@@ -235,7 +315,7 @@ export default function EditorPage() {
       </div>
 
       <ImageUploadModal isOpen={showUpload} onClose={() => setShowUpload(false)} onImageLoaded={setBackgroundImage} />
-      <SpaceScanModal isOpen={showScan} onClose={() => setShowScan(false)} onScanComplete={setBackgroundImage} />
+      <SpaceScanModal isOpen={showScan} onClose={() => setShowScan(false)} onScanComplete={handleScanComplete} />
       <ExportTools isOpen={showExport} onClose={() => setShowExport(false)} rooms={rooms} furniture={furniture} doors={doors} onLoadProject={loadProject} />
       <AIChatWidget rooms={rooms} furniture={furniture} doors={doors} />
     </div>

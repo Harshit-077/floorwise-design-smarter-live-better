@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { FURNITURE_CATALOG, ROOM_PRESETS, DOOR_PRESETS } from '@/types/editor';
+import { FURNITURE_CATALOG, ROOM_PRESETS, DOOR_PRESETS, WINDOW_PRESETS, PRESET_LAYOUTS } from '@/types/editor';
+import type { FurnitureCatalogItem, PresetLayout } from '@/types/editor';
 import { Button } from '@/components/ui/button';
-import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2, DoorOpen } from 'lucide-react';
+import { Sofa, BedDouble, UtensilsCrossed, Bath, Briefcase, LayoutGrid, ChevronDown, ChevronRight, RotateCw, Trash2, DoorOpen, Square, Layers } from 'lucide-react';
 
 interface Props {
-  onAddFurniture: (type: string, label: string, width: number, height: number) => void;
+  onAddFurniture: (type: string, label: string, width: number, height: number, variant?: string) => void;
   onAddRoom: (name: string, width: number, height: number, color: string) => void;
   onAddDoor: (label: string, width: number, height: number) => void;
+  onAddWindow: (label: string, width: number, height: number) => void;
+  onLoadPreset: (preset: PresetLayout) => void;
   onRotateSelected: () => void;
   onDeleteSelected: () => void;
   hasSelection: boolean;
@@ -21,24 +24,46 @@ const categoryIcons: Record<string, any> = {
   Office: Briefcase,
 };
 
-export default function FurniturePanel({ onAddFurniture, onAddRoom, onAddDoor, onRotateSelected, onDeleteSelected, hasSelection }: Props) {
+export default function FurniturePanel({ onAddFurniture, onAddRoom, onAddDoor, onAddWindow, onLoadPreset, onRotateSelected, onDeleteSelected, hasSelection }: Props) {
   const [expandedCat, setExpandedCat] = useState<string>('Living');
-  const [activeTab, setActiveTab] = useState<'rooms' | 'furniture' | 'doors'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'furniture' | 'doors' | 'windows' | 'presets'>('rooms');
+  const [expandedVariant, setExpandedVariant] = useState<string | null>(null);
 
   const categories = [...new Set(FURNITURE_CATALOG.map(f => f.category))];
 
+  const handleFurnitureClick = (item: FurnitureCatalogItem) => {
+    if (item.variants && item.variants.length > 0) {
+      setExpandedVariant(expandedVariant === item.type ? null : item.type);
+    } else {
+      onAddFurniture(item.type, item.label, item.width, item.height);
+    }
+  };
+
+  const tabs: { key: typeof activeTab; label: string; icon: any }[] = [
+    { key: 'rooms', label: 'Rooms', icon: LayoutGrid },
+    { key: 'doors', label: 'Doors', icon: DoorOpen },
+    { key: 'windows', label: 'Win', icon: Square },
+    { key: 'furniture', label: 'Furn', icon: Sofa },
+    { key: 'presets', label: 'Presets', icon: Layers },
+  ];
+
   return (
     <div className="w-full md:w-64 flex-shrink-0 glass-card overflow-hidden flex flex-col h-full">
-      <div className="p-3 border-b flex gap-1 overflow-x-auto">
-        <Button variant={activeTab === 'rooms' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('rooms')}>
-          <LayoutGrid className="w-3 h-3 mr-1" /> Rooms
-        </Button>
-        <Button variant={activeTab === 'doors' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('doors')}>
-          <DoorOpen className="w-3 h-3 mr-1" /> Doors
-        </Button>
-        <Button variant={activeTab === 'furniture' ? 'default' : 'ghost'} size="sm" className="flex-1 text-xs whitespace-nowrap" onClick={() => setActiveTab('furniture')}>
-          <Sofa className="w-3 h-3 mr-1" /> Furniture
-        </Button>
+      <div className="p-2 border-b flex gap-0.5 overflow-x-auto">
+        {tabs.map(t => {
+          const Icon = t.icon;
+          return (
+            <Button
+              key={t.key}
+              variant={activeTab === t.key ? 'default' : 'ghost'}
+              size="sm"
+              className="flex-1 text-[10px] px-1.5 whitespace-nowrap"
+              onClick={() => setActiveTab(t.key)}
+            >
+              <Icon className="w-3 h-3 mr-0.5" /> {t.label}
+            </Button>
+          );
+        })}
       </div>
 
       {hasSelection && (
@@ -103,6 +128,31 @@ export default function FurniturePanel({ onAddFurniture, onAddRoom, onAddDoor, o
           </div>
         )}
 
+        {activeTab === 'windows' && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground px-1 mb-2">Click to add a window to the canvas</p>
+            {WINDOW_PRESETS.map(preset => (
+              <button
+                key={preset.label}
+                className="w-full text-left p-3 rounded-xl border hover:bg-muted/50 hover:border-secondary transition-colors"
+                onClick={() => onAddWindow(preset.label, preset.width, preset.height)}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Square className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{preset.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(preset.width / 50 * 1.5).toFixed(1)}m × {(preset.height / 50 * 1.5).toFixed(1)}m
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'furniture' && (
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground px-1 mb-2">Click to add furniture to the canvas</p>
@@ -124,22 +174,76 @@ export default function FurniturePanel({ onAddFurniture, onAddRoom, onAddDoor, o
                   {isExpanded && (
                     <div className="ml-4 space-y-0.5 mb-1">
                       {items.map(item => (
-                        <button
-                          key={item.type}
-                          className="w-full text-left p-2 rounded-lg text-sm hover:bg-muted/50 transition-colors flex items-center justify-between"
-                          onClick={() => onAddFurniture(item.type, item.label, item.width, item.height)}
-                        >
-                          <span>{item.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {(item.width / 50 * 1.5).toFixed(1)}×{(item.height / 50 * 1.5).toFixed(1)}m
-                          </span>
-                        </button>
+                        <div key={item.type}>
+                          <button
+                            className="w-full text-left p-2 rounded-lg text-sm hover:bg-muted/50 transition-colors flex items-center justify-between"
+                            onClick={() => handleFurnitureClick(item)}
+                          >
+                            <span className="flex items-center gap-1">
+                              {item.label}
+                              {item.variants && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-medium">
+                                  {item.variants.length}
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {(item.width / 50 * 1.5).toFixed(1)}×{(item.height / 50 * 1.5).toFixed(1)}m
+                            </span>
+                          </button>
+                          {item.variants && expandedVariant === item.type && (
+                            <div className="ml-3 mb-1 space-y-0.5 border-l-2 border-secondary/20 pl-2">
+                              {item.variants.map(v => (
+                                <button
+                                  key={v.variantLabel}
+                                  className="w-full text-left p-1.5 rounded-lg text-xs hover:bg-secondary/10 transition-colors flex items-center justify-between"
+                                  onClick={() => onAddFurniture(item.type, `${item.label} (${v.variantLabel})`, v.width, v.height, v.variantLabel)}
+                                >
+                                  <span className="text-secondary font-medium">{v.variantLabel}</span>
+                                  <span className="text-muted-foreground">
+                                    {(v.width / 50 * 1.5).toFixed(1)}×{(v.height / 50 * 1.5).toFixed(1)}m
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {activeTab === 'presets' && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground px-1 mb-2">One-click layouts with rooms, doors & furniture</p>
+            {PRESET_LAYOUTS.map(preset => (
+              <button
+                key={preset.name}
+                className="w-full text-left p-4 rounded-xl border hover:bg-muted/50 hover:border-secondary transition-colors group"
+                onClick={() => onLoadPreset(preset)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-display font-bold text-sm shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                    {preset.roomCount}R
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">{preset.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{preset.description}</div>
+                    <div className="flex gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                      <span>{preset.rooms.length} rooms</span>
+                      <span>·</span>
+                      <span>{preset.doors.length} doors</span>
+                      <span>·</span>
+                      <span>{preset.furniture.length} items</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>

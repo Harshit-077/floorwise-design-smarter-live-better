@@ -15,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 245 58% 51%;
+    --primary: 152 55% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 199 89% 48%;
+    --secondary: 168 80% 36%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 220 14% 92%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 262 83% 58%;
+    --accent: 38 75% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -38,48 +38,48 @@
 
     --border: 220 13% 89%;
     --input: 220 13% 89%;
-    --ring: 245 58% 51%;
+    --ring: 152 55% 38%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 232 33% 12%;
-    --sidebar-foreground: 220 20% 95%;
-    --sidebar-primary: 245 58% 51%;
+    --sidebar-background: 155 30% 10%;
+    --sidebar-foreground: 140 20% 95%;
+    --sidebar-primary: 152 55% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 232 33% 18%;
-    --sidebar-accent-foreground: 220 20% 95%;
-    --sidebar-border: 232 20% 22%;
-    --sidebar-ring: 245 58% 51%;
+    --sidebar-accent: 155 30% 16%;
+    --sidebar-accent-foreground: 140 20% 95%;
+    --sidebar-border: 155 20% 20%;
+    --sidebar-ring: 152 55% 38%;
   }
 
   .dark {
-    --background: 228 25% 8%;
-    --foreground: 220 20% 95%;
+    --background: 155 25% 7%;
+    --foreground: 140 20% 95%;
 
-    --card: 228 25% 12%;
-    --card-foreground: 220 20% 95%;
+    --card: 155 25% 11%;
+    --card-foreground: 140 20% 95%;
 
-    --popover: 228 25% 12%;
-    --popover-foreground: 220 20% 95%;
+    --popover: 155 25% 11%;
+    --popover-foreground: 140 20% 95%;
 
-    --primary: 245 58% 60%;
+    --primary: 152 55% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 199 89% 48%;
+    --secondary: 168 80% 40%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 228 20% 18%;
-    --muted-foreground: 220 9% 55%;
+    --muted: 155 20% 16%;
+    --muted-foreground: 150 9% 55%;
 
-    --accent: 262 83% 65%;
+    --accent: 38 75% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 228 20% 20%;
-    --input: 228 20% 20%;
-    --ring: 245 58% 60%;
+    --border: 155 20% 18%;
+    --input: 155 20% 18%;
+    --ring: 152 55% 45%;
   }
 }
 
@@ -104,19 +104,23 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(245 58% 51%), hsl(262 83% 58%));
+    background: linear-gradient(135deg, hsl(152 55% 38%), hsl(168 80% 36%));
   }
 
   .gradient-accent {
-    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(245 58% 51%));
+    background: linear-gradient(135deg, hsl(168 80% 36%), hsl(152 55% 38%));
   }
 
   .gradient-hero {
-    background: linear-gradient(180deg, hsl(232 33% 8%) 0%, hsl(245 40% 18%) 100%);
+    background: linear-gradient(180deg, hsl(155 40% 6%) 0%, hsl(152 38% 14%) 50%, hsl(140 30% 18%) 100%);
+  }
+
+  .gradient-forest {
+    background: linear-gradient(135deg, hsl(152 55% 38%), hsl(38 75% 50%));
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(199 89% 55%), hsl(262 83% 65%));
+    background: linear-gradient(135deg, hsl(152 69% 50%), hsl(38 75% 55%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -131,5 +135,31 @@
 
   .score-ring {
     transition: stroke-dashoffset 1s ease-in-out;
+  }
+
+  .forest-glow {
+    box-shadow: 0 0 60px rgba(34, 197, 94, 0.15), 0 0 120px rgba(34, 197, 94, 0.05);
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-8px) rotate(2deg); }
+    66% { transform: translateY(4px) rotate(-1deg); }
+  }
+
+  @keyframes drift {
+    0% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateX(var(--drift-x, 80px)) translateY(var(--drift-y, -200px)) rotate(var(--drift-r, 180deg)); opacity: 0; }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .leaf-particle {
+    animation: drift var(--duration, 12s) linear infinite;
+    animation-delay: var(--delay, 0s);
   }
 }
